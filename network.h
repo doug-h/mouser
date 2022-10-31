@@ -11,7 +11,7 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 
-// TODO -  Replace this, no reason for reference counting
+// TODO -  remove this, no reason to reference count
 static int SOCKETCOUNT = 0;
 
 void InitWinsock() {
@@ -38,14 +38,20 @@ struct NetMan {
     }
     ++SOCKETCOUNT;
 
-    handle = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+    //handle = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+    handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
     if (handle == SOCKET_ERROR) {
       printf("Failed to create socket: %d\n", WSAGetLastError());
       ShutdownWinsock();
       assert(0);
     }
+#ifdef SERVER
     unsigned long blocking = 1;
+#endif
+#ifdef CLIENT
+    unsigned long blocking = 0;
+#endif
     int iResult = ioctlsocket(handle, FIONBIO, &blocking);
     if (iResult == SOCKET_ERROR) {
       printf("Failed to set non-blocking: %d\n", WSAGetLastError());
@@ -66,13 +72,16 @@ struct NetMan {
   }
 
   void PrintAddress() {
-    sockaddr_in6 name;
+    //sockaddr_in6 name;
+    sockaddr_in name;
     int namelen = sizeof(name);
     getsockname(handle, (sockaddr *)&name, &namelen);
 
     char address[64];
-    inet_ntop(name.sin6_family, &(name.sin6_addr), address, sizeof(address));
-    std::cout << address << "::" << ntohs(name.sin6_port) << '\n';
+    //inet_ntop(name.sin6_family, &(name.sin6_addr), address, sizeof(address));
+    inet_ntop(name.sin_family, &(name.sin_addr), address, sizeof(address));
+    //std::cout << address << "::" << ntohs(name.sin6_port) << '\n';
+    std::cout << address << "::" << ntohs(name.sin_port) << '\n';
   }
 
   // ============= Client Code ================
@@ -83,7 +92,8 @@ struct NetMan {
     int iResult;
 
     memset(&hints, 0, sizeof(hints)); // make sure the struct is empty
-    hints.ai_family = AF_INET6;       // IPv6
+    //hints.ai_family = AF_INET6;       // IPv6
+    hints.ai_family = AF_INET;       // IPv4
     hints.ai_socktype = SOCK_DGRAM;   // UDP
 
     // get ready to connect
@@ -174,7 +184,8 @@ struct NetMan {
     int iResult;
 
     memset(&hints, 0, sizeof(hints));
-    hints.ai_family = AF_INET6;
+    //hints.ai_family = AF_INET6;
+    hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_DGRAM;
     hints.ai_flags = AI_PASSIVE;
 
@@ -195,7 +206,8 @@ struct NetMan {
   // Listens for command messages
   void CheckForMessages() {
 
-    sockaddr_in6 client;
+    //sockaddr_in6 client;
+    sockaddr_in client;
     int clientlen = sizeof(client);
 
     char message[8];
@@ -245,7 +257,8 @@ struct NetMan {
     }
   }
 
-  std::vector<sockaddr_in6> clients;
+  //std::vector<sockaddr_in6> clients;
+  std::vector<sockaddr_in> clients;
 
 private:
   SOCKET handle = INVALID_SOCKET;

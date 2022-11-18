@@ -8,8 +8,8 @@
 #include <iostream>
 #include <vector>
 
-#include <winsock2.h>
 #include <ws2tcpip.h>
+#include <winsock2.h>
 
 // TODO -  remove this, no reason to reference count
 static int SOCKETCOUNT = 0;
@@ -85,7 +85,7 @@ struct NetMan {
   }
 
   // ============= Client Code ================
-  void CreateClient(std::string address) {
+  void CreateClient(const char* address) {
     const char *port = "34197";
 
     addrinfo hints, *servinfo;
@@ -97,10 +97,10 @@ struct NetMan {
     hints.ai_socktype = SOCK_DGRAM;   // UDP
 
     // get ready to connect
-    iResult = getaddrinfo(address.c_str(), port, &hints, &servinfo);
+    iResult = getaddrinfo(address, port, &hints, &servinfo);
     if (iResult) {
       printf("Error %d. Failed to find address: %s.\n", iResult,
-             address.c_str());
+             address);
       ShutdownWinsock();
       assert(0);
     }

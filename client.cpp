@@ -1,11 +1,24 @@
 #include "client.h"
 
+Client::Client() : net{}, mouse{} {
+  if (SDL_CreateWindow("Mouser", SDL_WINDOWPOS_UNDEFINED,
+                       SDL_WINDOWPOS_UNDEFINED, 0, 0,
+                       SDL_WINDOW_HIDDEN) == nullptr) {
+
+    printf("Unable to create window: %s", SDL_GetError());
+  }
+  if (SDL_Init(SDL_INIT_EVENTS) != 0) {
+    printf("Unable to initialize SDL: %s", SDL_GetError());
+  }
+}
+
 void Client::StartCapturing() {
   assert(not capturing);
   capturing = true;
   std::cout << "START\n";
   SDL_SetRelativeMouseMode(SDL_TRUE);
 }
+
 void Client::StopCapturing() {
   assert(capturing);
   capturing = false;
@@ -22,8 +35,7 @@ void Client::ProcessEvents() {
   }
 }
 
-void Client::Connect(const char *_address = nullptr) {
-  // Client provides ip, or chooses from server_book
+void Client::Connect(const char *_address) {
   std::string address;
   if (_address != nullptr) {
     address = _address;
@@ -57,7 +69,9 @@ void Client::Run() {
 int main(int argv, char **args) {
 
   Client client;
+
   client.Connect(args[1]);
   client.Run();
+
   return 0;
 }

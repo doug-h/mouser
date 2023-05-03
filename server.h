@@ -1,47 +1,35 @@
 /* Mixing SDL and win32 api bad idea,
  * for now make sure win32 net stuff included before SDL. */
 
-#include "network.h"
-// <-- To stop clang format breaking include order -->
+#include <winsock2.h>
+#include <ws2tcpip.h>
+
 #include "mouse.h"
 
 #include <algorithm>
+#include <cassert>
 #include <iostream>
+#include <vector>
 
 class Server {
 public:
-  Server() : net{}, mouse{} {
-    window = SDL_CreateWindow("Mouser", SDL_WINDOWPOS_UNDEFINED,
-                              SDL_WINDOWPOS_UNDEFINED, 200, 100,
-                              SDL_WINDOW_ALWAYS_ON_TOP);
-    if (window == nullptr) {
-      printf("Unable to create window: %s", SDL_GetError());
-    }
-    if (SDL_Init(SDL_INIT_EVENTS) != 0) {
-      printf("Unable to initialize SDL: %s", SDL_GetError());
-    }
-    surface = SDL_GetWindowSurface(window);
-    if (surface == nullptr) {
-      printf("Unable to get surface: %s", SDL_GetError());
-    }
-    esc = SDL_LoadBMP("../assets/esc.bmp");
-    if (esc == nullptr) {
-      printf("Unable to load esc.bmp: %s", SDL_GetError());
-    }
-
-    net.Bind();
-    net.PrintAddress();
-  }
-
-  void Run();
+  Server();
+  void Start();
 
 private:
-  NetMan net;
-  MouseData mouse;
+  void CreateSocket();
+  void BindSocket(const char *port = "34197");
+  void Send(const char *buffer, int buffer_length);
 
-  SDL_Window *window;
-  SDL_Surface *surface;
-  SDL_Surface *esc;
+  void ProcessEvents();
+  void CheckForMessages();
+
+  void StartCapturing();
+  void StopCapturing();
+
+  void ShutdownSockets() { WSACleanup(); }
+  void Quit() { running = false; };
+
 
   const int rate = 50; // Hz
   const int delay = 1000 / rate;
@@ -51,9 +39,11 @@ private:
 
   bool mouse_has_updated = true;
 
-  void ProcessEvents();
-  void StartCapturing();
-  void StopCapturing();
+  MouseData mouse;
+  SOCKET socket_handle;
+  std::vector<sockaddr_in> clients;
 
-  void Quit() { running = false; };
+  SDL_Window *window;
+  SDL_Surface *surface;
+  SDL_Surface *esc;
 };

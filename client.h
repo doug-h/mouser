@@ -1,38 +1,40 @@
-/* Mixing SDL and win32 api bad idea,
- * for now make sure win32 included before SDL. */
 
-#include "network.h"
 
+//
+#include <SDL2/SDL.h>
+
+#include <memory>
+#include <vector>
+
+#include "keyboard.h"
 #include "mouse.h"
+#include "platform.h"
 
 class Client {
-public:
-
+ public:
   Client();
 
+  // Call without arg to connect to saved address
   void Connect(const char* _address = nullptr);
   void Run();
 
-
-private:
+ private:
   void ProcessEvents();
-  void StartCapturing();
-  void StopCapturing();
 
-  void Quit() { running = false; };
+  void Quit() { m_running = false; };
 
-
-  NetMan net;
   MouseData mouse;
+  KeyData keys;
+
+  // Platform specific
+  std::unique_ptr<Socket> socket;
 
   // List of known ip addresses
   std::vector<std::string> server_book = {"localhost"};
 
-  int rate = 50; // Hz
-  int delay = 1000 / rate;
+  const int rate = 500;  // Hz
+  const int delay = 1000 / rate;
+  const char* const port = "34197";
 
-  bool running = true;
-  bool capturing = false;
-  bool mouse_has_updated = true;
-
+  bool m_running = true;
 };

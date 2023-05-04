@@ -1,41 +1,49 @@
-#ifndef MOUSER_MOUSE_H__
-#define MOUSER_MOUSE_H__
+#pragma once
 
-#include <SDL2/SDL.h>
-
+#include <cstdint>
 #include <iostream>
 
 /*  Mouse pos is stored & sent as coord on a 1920x1080 screen, then scaled by
  * client.
+ * We send current button state and mouse position, but scroll wheel delta
+ * accumulated since last packet.
  * TODO - query client what current screen size is, otherwise
  * non 16:9 screens will have different x/y sensitivity. */
-const int SOURCE_WIDTH = 1920;
-const int SOURCE_HEIGHT = 1080;
+#define SOURCE_WIDTH 1920
+#define SOURCE_HEIGHT 1080
 
-static_assert(sizeof(char) == 1);
-static_assert(sizeof(short) == 2);
-static_assert(sizeof(int) == 4);
+#define BUTTON_LMASK (1 << 0)
+#define BUTTON_MMASK (1 << 1)
+#define BUTTON_RMASK (1 << 2)
+
 struct MouseData {
-
-  bool LClicked() const { return (b & SDL_BUTTON(SDL_BUTTON_LEFT)); }
-  bool MClicked() const { return (b & SDL_BUTTON(SDL_BUTTON_MIDDLE)); }
-  bool RClicked() const { return (b & SDL_BUTTON(SDL_BUTTON_RIGHT)); }
+  MouseData() : data{'m'} {}
+  bool LClicked() const { return (button & BUTTON_LMASK); }
+  bool MClicked() const { return (button & BUTTON_MMASK); }
+  bool RClicked() const { return (button & BUTTON_RMASK); }
 
   union {
     struct {
-      short x, y;
-      char b;
-      char _padding[3];
+      uint8_t header;
+      uint8_t padding;
+
+      uint16_t x, y;
+      uint8_t button;
+      uint8_t scroll_amount;
     };
-    char data[8];
+    uint8_t data[8];
   };
 };
+static_assert(sizeof(MouseData) == 8);
 
-std::ostream &operator<<(std::ostream &os, const MouseData &md) {
-  os << '(' << md.x << ", " << md.y << ')';
+inline std::ostream &operator<<(std::ostream &os, const MouseData &md) {
+  os << '(' << md.x << ", " << md.y << ')';  // (x,y)
   os << '[' << ((md.LClicked()) ? 'X' : 'O') << ','
      << ((md.MClicked()) ? 'X' : 'O') << ',' << ((md.RClicked()) ? 'X' : 'O')
-     << ']';
+     << ']';  // [X,O,O]
+  os << ((md.scroll_amount > 0)   ? '^'
+         : (md.scroll_amount < 0) ? 'v'
+                                  : 'o')
+     << ", " << (int)md.scroll_amount;
   return os;
 }
-#endif // MOUSER_MOUSE_H__

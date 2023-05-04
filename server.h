@@ -3,23 +3,26 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
-
-#include "mouse.h"
+//
+#include <SDL2/SDL.h>
 
 #include <algorithm>
 #include <cassert>
 #include <iostream>
 #include <vector>
 
+#include "keyboard.h"
+#include "mouse.h"
+
 class Server {
-public:
+ public:
   Server();
   void Start();
 
-private:
+ private:
   void CreateSocket();
   void BindSocket(const char *port = "34197");
-  void Send(const char *buffer, int buffer_length);
+  void Send(const uint8_t *buffer, int buffer_length);
 
   void ProcessEvents();
   void CheckForMessages();
@@ -30,18 +33,21 @@ private:
   void ShutdownSockets() { WSACleanup(); }
   void Quit() { running = false; };
 
-
-  const int rate = 50; // Hz
+  const int rate = 50;  // Hz
   const int delay = 1000 / rate;
 
   bool running = true;
   bool capturing = false;
 
   bool mouse_has_updated = true;
+  bool keyboard_has_updated = true;
 
   MouseData mouse;
+  KeyData keys;
   SOCKET socket_handle;
   std::vector<sockaddr_in> clients;
+
+  const Uint8 *keyboard_state;
 
   SDL_Window *window;
   SDL_Surface *surface;

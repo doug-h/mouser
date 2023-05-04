@@ -1,7 +1,11 @@
 #include "server.h"
 
 Server::Server()
-    : mouse{}, socket_handle{INVALID_SOCKET}, window{nullptr}, surface{nullptr},
+    : mouse{},
+      keys{},
+      socket_handle{INVALID_SOCKET},
+      window{nullptr},
+      surface{nullptr},
       esc{nullptr} {
   window = SDL_CreateWindow("Mouser", SDL_WINDOWPOS_UNDEFINED,
                             SDL_WINDOWPOS_UNDEFINED, 200, 100,
@@ -30,14 +34,15 @@ Server::Server()
     printf("Failed to initialise Winsock: %d\n", iResult);
     assert(0);
   }
+
+  keyboard_state = SDL_GetKeyboardState(nullptr);
 }
 
 void Server::ProcessEvents() {
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
-
     // ---------- Events that always happen ----------
-    if (e.type == SDL_QUIT) { // 0x100
+    if (e.type == SDL_QUIT) {  // 0x100
       Quit();
     }
     // ---------- Events when input is NOT captured ----------
@@ -54,25 +59,28 @@ void Server::ProcessEvents() {
 
     // ---------- Events when input IS captured ----------
     else {
-      if (e.type == SDL_KEYDOWN) { // 0x300
+      if (e.type == SDL_KEYDOWN or e.type == SDL_KEYUP) {  // 0x300 / 0x301
         if (e.key.keysym.sym == SDLK_ESCAPE) {
           StopCapturing();
+        } else {
+          keyboard_has_updated = true;
         }
-        //} else if (e.type == SDL_KEYUP) { // 0x301
-
-      } else if (e.type == SDL_MOUSEMOTION) { // 0x400
+      } else if (e.type == SDL_MOUSEMOTION) {  // 0x400
         /* Mouse is constrained to small (200x100) window,
          * so we have to do screen clamping */
         mouse.x = std::clamp(mouse.x + e.motion.xrel, 0, SOURCE_WIDTH);
         mouse.y = std::clamp(mouse.y + e.motion.yrel, 0, SOURCE_HEIGHT);
         mouse_has_updated = true;
 
-      } else if (e.type == SDL_MOUSEBUTTONDOWN) { // 0x401
-        mouse.b = SDL_GetMouseState(nullptr, nullptr);
+      } else if (e.type == SDL_MOUSEBUTTONDOWN) {  // 0x401
         mouse_has_updated = true;
 
-      } else if (e.type == SDL_MOUSEBUTTONUP) { // 0x402
-        mouse.b = SDL_GetMouseState(nullptr, nullptr);
+      } else if (e.type == SDL_MOUSEBUTTONUP) {  // 0x402
+
+        mouse_has_updated = true;
+
+      } else if (e.type == SDL_MOUSEWHEEL) {  // 0x403
+        mouse.scroll_amount += e.wheel.y;
         mouse_has_updated = true;
 
       } else {
@@ -110,9 +118,9 @@ void Server::CreateSocket() {
     assert(0);
   }
 
-  unsigned long blocking = true;
+  unsigned long non_blocking = true;
 
-  int iResult = ioctlsocket(socket_handle, FIONBIO, &blocking);
+  int iResult = ioctlsocket(socket_handle, FIONBIO, &non_blocking);
   if (iResult == SOCKET_ERROR) {
     printf("Failed to set non-blocking: %d\n", WSAGetLastError());
     ShutdownSockets();
@@ -143,7 +151,6 @@ void Server::BindSocket(const char *port) {
   }
 }
 void Server::CheckForMessages() {
-
   sockaddr_in client;
   int clientlen = sizeof(client);
 
@@ -168,7 +175,7 @@ void Server::CheckForMessages() {
       return;
 
       // Otherwise we received a packet
-    } else if (strcmp(message, "new_cli") == 0) {
+    } else if (strcmp(message, "cnewcli") == 0) {
       std::cout << "New client accepted." << '\n';
       clients.push_back(client);
     } else if (message[0] == 'l' && message[1] == 'a' && message[2] == 't') {
@@ -182,15 +189,15 @@ void Server::CheckForMessages() {
     }
   };
 }
-void Server::Send(const char *buffer, int bufferlen) {
+void Server::Send(const uint8_t *buffer, int bufferlen) {
+  // TODO - handle errors
   for (const auto &a : clients) {
-    sendto(socket_handle, buffer, bufferlen, 0, (const sockaddr *)&a,
+    sendto(socket_handle, (char *)buffer, bufferlen, 0, (const sockaddr *)&a,
            sizeof(a));
   }
 }
 
 void Server::Start() {
-
   CreateSocket();
   BindSocket();
   while (running) {
@@ -199,8 +206,18 @@ void Server::Start() {
     CheckForMessages();
 
     if (capturing and mouse_has_updated) {
+      mouse.button = SDL_GetMouseState(nullptr, nullptr);
       Send(mouse.data, 8);
+      mouse.scroll_amount = 0;
+    }
+    if (capturing and keyboard_has_updated) {
+      UpdateKeyData(keyboard_state, keys);
+      Send(keys.data, 32);
+    }
+
+    if (mouse_has_updated or keyboard_has_updated) {
       mouse_has_updated = false;
+      keyboard_has_updated = false;
       SDL_Delay(delay);
     }
   }
@@ -209,5 +226,7 @@ void Server::Start() {
 int main(int argv, char **args) {
   Server server;
   server.Start();
+  return 0;
+
   return 0;
 }

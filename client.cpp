@@ -51,32 +51,73 @@ void Client::Connect(const char *_address) {
   socket->Send(msg, sizeof(msg));
 }
 
+void Client::UpdateMouse(MousePacket *packet) {
+  memcpy(&mouse, packet, MOUSE_PACKET_SIZE);
+  SetMouse(mouse.data);
+  std::cout << mouse.data << '\n';
+}
+void Client::UpdateKeys(KeyPacket *packet) {
+  // TODO - rework this, dont need 4KB of ints for a couple key inputs
+  static SDL_Scancode keys_to_press[SDL_NUM_SCANCODES];
+  static SDL_Scancode keys_to_release[SDL_NUM_SCANCODES];
+
+  int num_to_press = 0;
+  int num_to_release = 0;
+
+  uint8_t *received = packet->data.packed_scancodes;
+  uint8_t *stored = keys.data.packed_scancodes;
+
+  for (size_t byte = 0; byte < N_BYTES; ++byte) {
+    uint8_t diff = received[byte] ^ stored[byte];
+    int bit = 0;
+    while (diff) {
+      if (diff & 1) {
+        SDL_Scancode s = (SDL_Scancode)(MIN_SCANCODE + 8 * byte + bit);
+        if (received[byte] & (1 << bit)) {
+          keys_to_press[num_to_press++] = s;
+          printf("Keyboard press %i\n", s);
+        } else {
+          keys_to_release[num_to_release++] = s;
+          printf("Keyboard release %i\n", s);
+        }
+      }
+      diff >>= 1;
+      ++bit;
+    }
+  }
+
+  SetKeys(keys_to_press, keys_to_release, num_to_press, num_to_release);
+
+  memcpy(&keys, packet, KEYBOARD_PACKET_SIZE);
+}
+
 void Client::Run() {
   while (m_running) {
     ProcessEvents();
 
-    uint8_t msg[32];
+    uint8_t msg[MAX_PACKET_SIZE];
 
-    int n_bytes = socket->Listen(msg, 32);
+    int n_bytes = socket->Listen(msg, MAX_PACKET_SIZE);
     if (n_bytes) {
-      switch (msg[0]) {
-        case 'm':  // Mouse data
-          assert(n_bytes == 8);
-          memcpy(mouse.data, msg, 8);
-          std::cout << mouse << '\n';
-          SetMouse(mouse);
-          break;
-        case 'k':  // Keyb data
-          assert(n_bytes == 32);
-          memcpy(keys.data, msg, 32);
-          SetKeys(keys);
-          break;
-        case 'c':  // Command
-          puts("Received command.");
-          break;
-        default:
-          puts("Unrecognised packet.");
-          break;
+      switch (CheckPacketType(msg)) {
+      case MOUSE:
+        // puts("Mouse packet");
+        assert(n_bytes == MOUSE_PACKET_SIZE);
+
+        UpdateMouse((MousePacket *)msg);
+        break;
+      case KEYBOARD:
+        assert(n_bytes == KEYBOARD_PACKET_SIZE);
+        // puts("Keyboard packet");
+        UpdateKeys((KeyPacket *)msg);
+        break;
+      case COMMAND:
+        puts("Received command.");
+        break;
+      case UNKNOWN:
+      default:
+        puts("Unrecognised packet.");
+        break;
       }
 
       SDL_Delay(delay);

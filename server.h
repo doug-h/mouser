@@ -11,15 +11,15 @@
 #include <iostream>
 #include <vector>
 
-#include "keyboard.h"
-#include "mouse.h"
+#include "input.h"
+#include "network.h"
 
 class Server {
- public:
+public:
   Server();
   void Start();
 
- private:
+private:
   void CreateSocket();
   void BindSocket(const char *port = "34197");
   void Send(const uint8_t *buffer, int buffer_length);
@@ -33,17 +33,19 @@ class Server {
   void ShutdownSockets() { WSACleanup(); }
   void Quit() { running = false; };
 
-  const int rate = 50;  // Hz
+  const int rate = 50; // Hz
   const int delay = 1000 / rate;
 
   bool running = true;
   bool capturing = false;
 
   bool mouse_has_updated = true;
-  bool keyboard_has_updated = true;
+  // ticks to wait before we stop sending input
+  const int keyboard_sleep_time = rate;
+  int keyboard_sleep_counter = 0;
 
-  MouseData mouse;
-  KeyData keys;
+  MousePacket mouse;
+  KeyPacket keys;
   SOCKET socket_handle;
   std::vector<sockaddr_in> clients;
 

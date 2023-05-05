@@ -6,25 +6,27 @@
 #include <memory>
 #include <vector>
 
-#include "keyboard.h"
-#include "mouse.h"
+#include "network.h"
 #include "platform.h"
 
 class Client {
- public:
+public:
   Client();
 
   // Call without arg to connect to saved address
-  void Connect(const char* _address = nullptr);
+  void Connect(const char *_address = nullptr);
   void Run();
 
- private:
+private:
   void ProcessEvents();
+  void UpdateMouse(MousePacket*);
+  void UpdateKeys(KeyPacket*);
 
   void Quit() { m_running = false; };
 
-  MouseData mouse;
-  KeyData keys;
+  // Storing as packets is easier for sending/receiving
+  MousePacket mouse;
+  KeyPacket keys;
 
   // Platform specific
   std::unique_ptr<Socket> socket;
@@ -32,9 +34,9 @@ class Client {
   // List of known ip addresses
   std::vector<std::string> server_book = {"localhost"};
 
-  const int rate = 500;  // Hz
+  const int rate = 500; // Hz
   const int delay = 1000 / rate;
-  const char* const port = "34197";
+  const char *const port = "34197";
 
   bool m_running = true;
 };

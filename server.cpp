@@ -1,12 +1,8 @@
 #include "server.h"
 
 Server::Server()
-    : mouse{},
-      keys{},
-      socket_handle{INVALID_SOCKET},
-      window{nullptr},
-      surface{nullptr},
-      esc{nullptr} {
+    : mouse{}, keys{}, socket_handle{INVALID_SOCKET}, window{nullptr},
+      surface{nullptr}, esc{nullptr} {
   window = SDL_CreateWindow("Mouser", SDL_WINDOWPOS_UNDEFINED,
                             SDL_WINDOWPOS_UNDEFINED, 200, 100,
                             SDL_WINDOW_ALWAYS_ON_TOP);
@@ -42,7 +38,7 @@ void Server::ProcessEvents() {
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
     // ---------- Events that always happen ----------
-    if (e.type == SDL_QUIT) {  // 0x100
+    if (e.type == SDL_QUIT) { // 0x100
       Quit();
     }
     // ---------- Events when input is NOT captured ----------
@@ -59,28 +55,28 @@ void Server::ProcessEvents() {
 
     // ---------- Events when input IS captured ----------
     else {
-      if (e.type == SDL_KEYDOWN or e.type == SDL_KEYUP) {  // 0x300 / 0x301
+      if (e.type == SDL_KEYDOWN or e.type == SDL_KEYUP) { // 0x300 / 0x301
         if (e.key.keysym.sym == SDLK_ESCAPE) {
           StopCapturing();
         } else {
-          keyboard_has_updated = true;
+          keyboard_sleep_counter = keyboard_sleep_time;
         }
-      } else if (e.type == SDL_MOUSEMOTION) {  // 0x400
+      } else if (e.type == SDL_MOUSEMOTION) { // 0x400
         /* Mouse is constrained to small (200x100) window,
          * so we have to do screen clamping */
-        mouse.x = std::clamp(mouse.x + e.motion.xrel, 0, SOURCE_WIDTH);
-        mouse.y = std::clamp(mouse.y + e.motion.yrel, 0, SOURCE_HEIGHT);
+        mouse.data.x = std::clamp(mouse.data.x + e.motion.xrel, 0, 1920);
+        mouse.data.y = std::clamp(mouse.data.y + e.motion.yrel, 0, 1080);
         mouse_has_updated = true;
 
-      } else if (e.type == SDL_MOUSEBUTTONDOWN) {  // 0x401
+      } else if (e.type == SDL_MOUSEBUTTONDOWN) { // 0x401
         mouse_has_updated = true;
 
-      } else if (e.type == SDL_MOUSEBUTTONUP) {  // 0x402
+      } else if (e.type == SDL_MOUSEBUTTONUP) { // 0x402
 
         mouse_has_updated = true;
 
-      } else if (e.type == SDL_MOUSEWHEEL) {  // 0x403
-        mouse.scroll_amount += e.wheel.y;
+      } else if (e.type == SDL_MOUSEWHEEL) { // 0x403
+        mouse.data.scroll_amount += e.wheel.y;
         mouse_has_updated = true;
 
       } else {
@@ -206,18 +202,20 @@ void Server::Start() {
     CheckForMessages();
 
     if (capturing and mouse_has_updated) {
-      mouse.button = SDL_GetMouseState(nullptr, nullptr);
-      Send(mouse.data, 8);
-      mouse.scroll_amount = 0;
+      mouse.data.button = SDL_GetMouseState(nullptr, nullptr);
+      Send((uint8_t *)&mouse, MOUSE_PACKET_SIZE);
+      mouse.data.scroll_amount = 0;
     }
-    if (capturing and keyboard_has_updated) {
-      UpdateKeyData(keyboard_state, keys);
-      Send(keys.data, 32);
+    // We continue to send keyboard packets for a short time after all keys have
+    // been released to make sure the client doesn't miss it
+    if (capturing and keyboard_sleep_counter) {
+      CopySDLKeyData(keys.data, keyboard_state);
+      Send((uint8_t *)&keys, KEYBOARD_PACKET_SIZE);
+      --keyboard_sleep_counter;
     }
 
-    if (mouse_has_updated or keyboard_has_updated) {
+    if (mouse_has_updated or keyboard_sleep_counter) {
       mouse_has_updated = false;
-      keyboard_has_updated = false;
       SDL_Delay(delay);
     }
   }
@@ -226,7 +224,5 @@ void Server::Start() {
 int main(int argv, char **args) {
   Server server;
   server.Start();
-  return 0;
-
   return 0;
 }

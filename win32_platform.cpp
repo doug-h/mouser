@@ -15,7 +15,8 @@ void SetMouse(const MouseData &md) {
   bool M_button_down = GetKeyState(VK_MBUTTON) & 128;
   bool R_button_down = GetKeyState(VK_RBUTTON) & 128;
 
-  INPUT mouse_buttons[3] = {0};
+  INPUT mouse_buttons[3];
+  memset(mouse_buttons, 0, 3 * sizeof(INPUT));
   mouse_buttons[0].type = INPUT_MOUSE;
   mouse_buttons[1].type = INPUT_MOUSE;
   mouse_buttons[2].type = INPUT_MOUSE;
@@ -41,7 +42,7 @@ void SetMouse(const MouseData &md) {
 
 // We use virtual_key == 0 to mean no match (I don't think anything is
 // actually mapped to that value)
-UINT GetWindowsVKey(SDL_Scancode s) {
+WORD GetWindowsVKey(SDL_Scancode s) {
   static bool table_initialised;
   if (!table_initialised) {
     PopulateScancodeTable();
@@ -50,7 +51,7 @@ UINT GetWindowsVKey(SDL_Scancode s) {
 
   UINT win_scancode = sdl_windows_scancode_table[s];
   if (win_scancode) {
-    return MapVirtualKeyA(win_scancode, MAPVK_VSC_TO_VK);
+    return (WORD)MapVirtualKeyA(win_scancode, MAPVK_VSC_TO_VK);
   }
   return 0;
 }
@@ -89,13 +90,4 @@ void SetKeys(SDL_Scancode *keys_to_press, SDL_Scancode *keys_to_release,
     num_to_release -= key_buffer_size;
     keys_to_release += key_buffer_size;
   } while (num_to_release > key_buffer_size);
-}
-
-void SetKeys(const KeyData &kd) {
-  static BYTE win_keystate[256];
-  GetKeyboardState(win_keystate);
-
-  // We don't need this many at once...
-  static INPUT key_presses[256];
-  int n_keys_updated = 0;
 }

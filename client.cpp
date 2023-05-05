@@ -18,7 +18,7 @@ void Client::Connect(const char *_address) {
     if (i == 0) {
       std::cin >> address;
     } else {
-      assert(i > 0 and i - 1 < server_book.size());
+      assert(i > 0 and (size_t)(i - 1) < server_book.size());
       address = server_book[i - 1];
       // TODO - input verification
     }

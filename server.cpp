@@ -42,8 +42,8 @@ void Server::ProcessEvents() {
        * We also respond to clicks if the window is already focussed but not
        * capturing (user pressed ESCAPE). */
       if (e.type == SDL_MOUSEBUTTONUP or
-          e.type == SDL_WINDOWEVENT and
-              e.window.event == SDL_WINDOWEVENT_FOCUS_GAINED) {
+          (e.type == SDL_WINDOWEVENT and
+           e.window.event == SDL_WINDOWEVENT_FOCUS_GAINED)) {
         StartCapturing();
       }
     }
@@ -59,8 +59,10 @@ void Server::ProcessEvents() {
       } else if (e.type == SDL_MOUSEMOTION) {  // 0x400
         /* Mouse is constrained to small (200x100) window,
          * so we have to do screen clamping */
-        mouse.data.x = std::clamp(mouse.data.x + e.motion.xrel, 0, 1920);
-        mouse.data.y = std::clamp(mouse.data.y + e.motion.yrel, 0, 1080);
+        mouse.data.x =
+            (uint16_t)std::clamp(mouse.data.x + e.motion.xrel, 0, 1920);
+        mouse.data.y =
+            (uint16_t)std::clamp(mouse.data.y + e.motion.yrel, 0, 1080);
         mouse_has_updated = true;
 
       } else if (e.type == SDL_MOUSEBUTTONDOWN) {  // 0x401
@@ -71,7 +73,7 @@ void Server::ProcessEvents() {
         mouse_has_updated = true;
 
       } else if (e.type == SDL_MOUSEWHEEL) {  // 0x403
-        mouse.data.scroll_amount += e.wheel.y;
+        mouse.data.scroll_amount += (int8_t)e.wheel.y;
         mouse_has_updated = true;
 
       } else {
@@ -107,7 +109,6 @@ void Server::CheckForMessages() {
   sockaddr_storage client;
 
   char message[8];
-  int iResult = SOCKET_ERROR;
 
   int max_iter = 10000;
   while (max_iter-- > 0) {
@@ -143,7 +144,7 @@ void Server::Start() {
     CheckForMessages();
 
     if (capturing and mouse_has_updated) {
-      mouse.data.button = SDL_GetMouseState(nullptr, nullptr);
+      mouse.data.button = (uint8_t)SDL_GetMouseState(nullptr, nullptr);
       Send((char *)&mouse, MOUSE_PACKET_SIZE);
       mouse.data.scroll_amount = 0;
     }

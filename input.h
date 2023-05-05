@@ -1,6 +1,7 @@
 #pragma once
 
 #include <SDL2/SDL.h>
+
 #include <cstdint>
 #include <iostream>
 
@@ -16,7 +17,7 @@ const size_t N_BYTES = (MAX_SCANCODE - MIN_SCANCODE + 1 + 7) / 8;
 struct MouseData {
   uint16_t x, y;
   uint8_t button;
-  uint8_t scroll_amount;
+  int8_t scroll_amount;
 };
 
 struct KeyData {
@@ -35,7 +36,7 @@ inline void SetScancode(KeyData &kd, SDL_Scancode s, bool pressed) {
 
   unsigned char value = pressed;
   kd.packed_scancodes[byte_index] =
-      (kd.packed_scancodes[byte_index] & ~((unsigned char)1 << bit)) | (value << bit);
+      (uint8_t)(kd.packed_scancodes[byte_index] & ~(1 << bit)) | (value << bit);
 }
 
 inline void CopySDLKeyData(KeyData &kd, const Uint8 *sdl_keyboard_state) {
@@ -46,10 +47,10 @@ inline void CopySDLKeyData(KeyData &kd, const Uint8 *sdl_keyboard_state) {
 }
 
 inline std::ostream &operator<<(std::ostream &os, const MouseData &md) {
-  os << '(' << md.x << ", " << md.y << ')'; // (x,y)
+  os << '(' << md.x << ", " << md.y << ')';  // (x,y)
   os << '[' << (IsClicked(md, SDL_BUTTON_LEFT) ? 'X' : 'O') << ','
      << (IsClicked(md, SDL_BUTTON_MIDDLE) ? 'X' : 'O') << ','
-     << (IsClicked(md, SDL_BUTTON_RIGHT) ? 'X' : 'O') << ']'; // [X,O,O]
+     << (IsClicked(md, SDL_BUTTON_RIGHT) ? 'X' : 'O') << ']';  // [X,O,O]
   os << ((md.scroll_amount > 0)   ? '^'
          : (md.scroll_amount < 0) ? 'v'
                                   : 'o')

@@ -51,7 +51,7 @@ WinSocket::WinSocket(bool blocking, bool ipv6) : Socket(blocking, ipv6) {
   int af = (ipv6) ? AF_INET6 : AF_INET;
   m_handle = socket(af, SOCK_DGRAM, IPPROTO_UDP);
 
-  if (m_handle == SOCKET_ERROR) {
+  if (m_handle == INVALID_SOCKET) {
     printf("Failed to create socket: %d\n", WSAGetLastError());
     assert(0);
   }
@@ -97,7 +97,7 @@ bool WinSocket::Connect(const char *address, const char *port) {
   }
   // servinfo now points to a linked list of 1 or more struct addrinfos,
   // we just connect to the first one
-  iResult = connect(m_handle, servinfo->ai_addr, servinfo->ai_addrlen);
+  iResult = connect(m_handle, servinfo->ai_addr, (int)servinfo->ai_addrlen);
   freeaddrinfo(servinfo);
   return (iResult != SOCKET_ERROR);
 }
@@ -140,7 +140,7 @@ bool WinSocket::Bind(const char *port) {
     printf("getaddrinfo: %d\n", WSAGetLastError());
     return false;
   }
-  iResult = bind(m_handle, servinfo->ai_addr, servinfo->ai_addrlen);
+  iResult = bind(m_handle, servinfo->ai_addr, (int)servinfo->ai_addrlen);
   if (iResult == SOCKET_ERROR) {
     printf("Error %d. Failed to send new_cli message.\n", WSAGetLastError());
     return false;

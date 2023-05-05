@@ -1,7 +1,8 @@
 #pragma once
 
-#include "input.h"
 #include <cstdint>
+
+#include "input.h"
 
 struct MousePacket {
   const uint8_t header = 'm';
@@ -30,16 +31,16 @@ constexpr size_t MAX_PACKET_SIZE = 32;
 static_assert(MOUSE_PACKET_SIZE <= MAX_PACKET_SIZE);
 static_assert(KEYBOARD_PACKET_SIZE <= MAX_PACKET_SIZE);
 
-PacketType CheckPacketType(uint8_t *message) {
+PacketType CheckPacketType(char *message) {
   static_assert(HEADER_SIZE == 1);
-  switch (message[0]){
-  case 'm':
-    return MOUSE;
-  case 'k':
-    return KEYBOARD;
-  case 'c':
-    return COMMAND;
-  default:
-    return UNKNOWN;
+  switch (message[0]) {
+    case 'm':
+      return MOUSE;
+    case 'k':
+      return KEYBOARD;
+    case 'c':
+      return COMMAND;
+    default:
+      return UNKNOWN;
   }
 }

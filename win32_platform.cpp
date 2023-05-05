@@ -1,3 +1,5 @@
+
+#define WIN32_LEAN_AND_MEAN
 #include "Windows.h"
 /* Mixing SDL and win32 api bad idea,
  * for now make sure win32 included before SDL. */
@@ -55,7 +57,6 @@ UINT GetWindowsVKey(SDL_Scancode s) {
 
 void SetKeys(SDL_Scancode *keys_to_press, SDL_Scancode *keys_to_release,
              int num_to_press, int num_to_release) {
-
   // We commit 'key_buffer_size' inputs at a time
   const int key_buffer_size = 16;
   static INPUT key_input[key_buffer_size];

@@ -1,28 +1,25 @@
 /* Mixing SDL and win32 api bad idea,
  * for now make sure win32 net stuff included before SDL. */
 
-#include <winsock2.h>
-#include <ws2tcpip.h>
-//
 #include <SDL2/SDL.h>
 
 #include <algorithm>
 #include <cassert>
 #include <iostream>
+#include <memory>
 #include <vector>
 
 #include "input.h"
 #include "network.h"
+#include "platform.h"
 
 class Server {
-public:
+ public:
   Server();
   void Start();
 
-private:
-  void CreateSocket();
-  void BindSocket(const char *port = "34197");
-  void Send(const uint8_t *buffer, int buffer_length);
+ private:
+  void Send(const char *buffer, int buffer_length);
 
   void ProcessEvents();
   void CheckForMessages();
@@ -30,11 +27,11 @@ private:
   void StartCapturing();
   void StopCapturing();
 
-  void ShutdownSockets() { WSACleanup(); }
   void Quit() { running = false; };
 
-  const int rate = 50; // Hz
+  const int rate = 50;  // Hz
   const int delay = 1000 / rate;
+  const char *const port = "34197";
 
   bool running = true;
   bool capturing = false;
@@ -46,12 +43,14 @@ private:
 
   MousePacket mouse;
   KeyPacket keys;
-  SOCKET socket_handle;
-  std::vector<sockaddr_in> clients;
 
-  const Uint8 *keyboard_state;
+  // Platform specific
+  std::unique_ptr<Socket> socket;
+
+  std::vector<socket_address> clients;
 
   SDL_Window *window;
+  const Uint8 *keyboard_state;
   SDL_Surface *surface;
   SDL_Surface *esc;
 };

@@ -1,8 +1,7 @@
 #include "server.h"
 
 Server::Server()
-    : mouse{}, keys{}, socket_handle{INVALID_SOCKET}, window{nullptr},
-      surface{nullptr}, esc{nullptr} {
+    : mouse{}, keys{}, window{nullptr}, surface{nullptr}, esc{nullptr} {
   window = SDL_CreateWindow("Mouser", SDL_WINDOWPOS_UNDEFINED,
                             SDL_WINDOWPOS_UNDEFINED, 200, 100,
                             SDL_WINDOW_ALWAYS_ON_TOP);
@@ -24,21 +23,17 @@ Server::Server()
     printf("Unable to load esc.bmp: %s", SDL_GetError());
     assert(0);
   }
-  WSADATA WsaData;
-  int iResult = WSAStartup(MAKEWORD(2, 2), &WsaData);
-  if (iResult != NO_ERROR) {
-    printf("Failed to initialise Winsock: %d\n", iResult);
-    assert(0);
-  }
 
   keyboard_state = SDL_GetKeyboardState(nullptr);
+
+  socket = CreateSocket(false, false);
 }
 
 void Server::ProcessEvents() {
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
     // ---------- Events that always happen ----------
-    if (e.type == SDL_QUIT) { // 0x100
+    if (e.type == SDL_QUIT) {  // 0x100
       Quit();
     }
     // ---------- Events when input is NOT captured ----------
@@ -55,27 +50,27 @@ void Server::ProcessEvents() {
 
     // ---------- Events when input IS captured ----------
     else {
-      if (e.type == SDL_KEYDOWN or e.type == SDL_KEYUP) { // 0x300 / 0x301
+      if (e.type == SDL_KEYDOWN or e.type == SDL_KEYUP) {  // 0x300 / 0x301
         if (e.key.keysym.sym == SDLK_ESCAPE) {
           StopCapturing();
         } else {
           keyboard_sleep_counter = keyboard_sleep_time;
         }
-      } else if (e.type == SDL_MOUSEMOTION) { // 0x400
+      } else if (e.type == SDL_MOUSEMOTION) {  // 0x400
         /* Mouse is constrained to small (200x100) window,
          * so we have to do screen clamping */
         mouse.data.x = std::clamp(mouse.data.x + e.motion.xrel, 0, 1920);
         mouse.data.y = std::clamp(mouse.data.y + e.motion.yrel, 0, 1080);
         mouse_has_updated = true;
 
-      } else if (e.type == SDL_MOUSEBUTTONDOWN) { // 0x401
+      } else if (e.type == SDL_MOUSEBUTTONDOWN) {  // 0x401
         mouse_has_updated = true;
 
-      } else if (e.type == SDL_MOUSEBUTTONUP) { // 0x402
+      } else if (e.type == SDL_MOUSEBUTTONUP) {  // 0x402
 
         mouse_has_updated = true;
 
-      } else if (e.type == SDL_MOUSEWHEEL) { // 0x403
+      } else if (e.type == SDL_MOUSEWHEEL) {  // 0x403
         mouse.data.scroll_amount += e.wheel.y;
         mouse_has_updated = true;
 
@@ -91,6 +86,7 @@ void Server::StartCapturing() {
   capturing = true;
   std::cout << "START\n";
   SDL_SetRelativeMouseMode(SDL_TRUE);
+  SDL_SetWindowKeyboardGrab(window, SDL_TRUE);
   SDL_BlitSurface(esc, nullptr, surface, nullptr);
   SDL_UpdateWindowSurface(window);
 }
@@ -100,102 +96,47 @@ void Server::StopCapturing() {
   capturing = false;
   std::cout << "STOP\n";
   SDL_SetRelativeMouseMode(SDL_FALSE);
+  SDL_SetWindowKeyboardGrab(window, SDL_FALSE);
   SDL_Rect screen = {0, 0, 200, 100};
   Uint32 white = SDL_MapRGB(surface->format, 255, 255, 255);
   SDL_FillRect(surface, &screen, white);
   SDL_UpdateWindowSurface(window);
 }
 
-void Server::CreateSocket() {
-  socket_handle = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-  if (socket_handle == SOCKET_ERROR) {
-    printf("Failed to create socket: %d\n", WSAGetLastError());
-    ShutdownSockets();
-    assert(0);
-  }
-
-  unsigned long non_blocking = true;
-
-  int iResult = ioctlsocket(socket_handle, FIONBIO, &non_blocking);
-  if (iResult == SOCKET_ERROR) {
-    printf("Failed to set non-blocking: %d\n", WSAGetLastError());
-    ShutdownSockets();
-    assert(0);
-  }
-}
-
-void Server::BindSocket(const char *port) {
-  addrinfo hints, *servinfo;
-
-  memset(&hints, 0, sizeof(hints));
-  hints.ai_family = AF_INET;
-  hints.ai_socktype = SOCK_DGRAM;
-  hints.ai_flags = AI_PASSIVE;
-
-  int iResult;
-  iResult = getaddrinfo(NULL, port, &hints, &servinfo);
-  if (iResult) {
-    printf("getaddrinfo: %d\n", WSAGetLastError());
-    ShutdownSockets();
-    assert(0);
-  }
-  iResult = bind(socket_handle, servinfo->ai_addr, servinfo->ai_addrlen);
-  if (iResult == SOCKET_ERROR) {
-    printf("Error %d. Failed to send new_cli message.\n", WSAGetLastError());
-    ShutdownSockets();
-    assert(0);
-  }
-}
 void Server::CheckForMessages() {
-  sockaddr_in client;
-  int clientlen = sizeof(client);
+  sockaddr_storage client;
 
   char message[8];
   int iResult = SOCKET_ERROR;
 
   int max_iter = 10000;
   while (max_iter-- > 0) {
-    iResult = recvfrom(socket_handle, message, sizeof(message), 0,
-                       (sockaddr *)&client, &clientlen);
-    if (iResult == SOCKET_ERROR) {
-      int code = WSAGetLastError();
-      if (code == WSAEWOULDBLOCK) {
-        // Normal?
-      } else if (code == WSAECONNRESET) {
-        // Handle client disconnecting
+    if (socket->Listen(message, 8, client)) {
+      // We received a packet
+      if (strcmp(message, "cnewcli") == 0) {
+        std::cout << "New client accepted." << '\n';
+        clients.push_back(client);
       } else {
-        printf("Error %d. Failed to listen.\n", code);
-        ShutdownSockets();
-        assert(0);
+        std::cout << "Unrecognised message: " << message << '\n';
       }
-      return;
-
-      // Otherwise we received a packet
-    } else if (strcmp(message, "cnewcli") == 0) {
-      std::cout << "New client accepted." << '\n';
-      clients.push_back(client);
-    } else if (message[0] == 'l' && message[1] == 'a' && message[2] == 't') {
-      sendto(socket_handle, message, sizeof(message), 0,
-             (const sockaddr *)&client, sizeof(client));
-      std::cout << "Latency test requested." << '\n';
     } else {
-      std::cout << "Unrecognised message: " << message << '\n';
-      ShutdownSockets();
-      assert(0);
+      continue;
     }
-  };
+  }
 }
-void Server::Send(const uint8_t *buffer, int bufferlen) {
+
+void Server::Send(const char *buffer, int bufferlen) {
   // TODO - handle errors
   for (const auto &a : clients) {
-    sendto(socket_handle, (char *)buffer, bufferlen, 0, (const sockaddr *)&a,
-           sizeof(a));
+    socket->SendTo(a, buffer, bufferlen);
   }
 }
 
 void Server::Start() {
-  CreateSocket();
-  BindSocket();
+  if (!socket->Bind(port)) {
+    assert(0);
+  }
+
   while (running) {
     ProcessEvents();
 
@@ -203,14 +144,14 @@ void Server::Start() {
 
     if (capturing and mouse_has_updated) {
       mouse.data.button = SDL_GetMouseState(nullptr, nullptr);
-      Send((uint8_t *)&mouse, MOUSE_PACKET_SIZE);
+      Send((char *)&mouse, MOUSE_PACKET_SIZE);
       mouse.data.scroll_amount = 0;
     }
-    // We continue to send keyboard packets for a short time after all keys have
-    // been released to make sure the client doesn't miss it
+    // We continue to send keyboard packets for a short time after all keys
+    // have been released to make sure the client doesn't miss it
     if (capturing and keyboard_sleep_counter) {
       CopySDLKeyData(keys.data, keyboard_state);
-      Send((uint8_t *)&keys, KEYBOARD_PACKET_SIZE);
+      Send((char *)&keys, KEYBOARD_PACKET_SIZE);
       --keyboard_sleep_counter;
     }
 

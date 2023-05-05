@@ -10,17 +10,16 @@
 #include "platform.h"
 
 class Client {
-public:
+ public:
   Client();
 
   // Call without arg to connect to saved address
   void Connect(const char *_address = nullptr);
   void Run();
 
-private:
-  void ProcessEvents();
-  void UpdateMouse(MousePacket*);
-  void UpdateKeys(KeyPacket*);
+ private:
+  void UpdateMouse(MousePacket *);
+  void UpdateKeys(KeyPacket *);
 
   void Quit() { m_running = false; };
 
@@ -34,7 +33,7 @@ private:
   // List of known ip addresses
   std::vector<std::string> server_book = {"localhost"};
 
-  const int rate = 500; // Hz
+  const int rate = 500;  // Hz
   const int delay = 1000 / rate;
   const char *const port = "34197";
 

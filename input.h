@@ -6,13 +6,13 @@
 #include <iostream>
 
 // TODO - curate the SDL_Scancode list for keys we actually want to support
-// (currently we just do them all from s=4->s=231)
+// (currently we just do them all from s=4 --> s=231)
 const SDL_Scancode MIN_SCANCODE = SDL_SCANCODE_A;
 const SDL_Scancode MAX_SCANCODE = SDL_SCANCODE_RGUI;
 const size_t N_BYTES = (MAX_SCANCODE - MIN_SCANCODE + 1 + 7) / 8;
-// TODO - This will break if SDL changes their Scancode values!
+// NOTE - This will break if SDL changes their Scancode values between updates!
 //  Since we are sending data between different devices we should make sure
-//  client/server have compatible values
+//  client/server have compatible SDL2 versions
 
 struct MouseData {
   uint16_t x, y;
@@ -20,12 +20,14 @@ struct MouseData {
   int8_t scroll_amount;
 };
 
+// Keyboard state, each key's state is stored as a bit (pressed/not pressed)
 struct KeyData {
   uint8_t packed_scancodes[N_BYTES];
 };
 
-/* One of SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_MIDDLE */
-inline bool IsClicked(const MouseData &md, int SDL_button_id) {
+// Retrieve the state of a button in MouseData
+// SDL_button_id is one of SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_MIDDLE
+inline bool IsButtonPressed(const MouseData &md, int SDL_button_id) {
   return SDL_BUTTON(SDL_button_id) & md.button;
 }
 
@@ -39,18 +41,12 @@ inline void SetScancode(KeyData &kd, SDL_Scancode s, bool pressed) {
       (uint8_t)(kd.packed_scancodes[byte_index] & ~(1 << bit)) | (value << bit);
 }
 
-inline void CopySDLKeyData(KeyData &kd, const Uint8 *sdl_keyboard_state) {
-  for (SDL_Scancode s = MIN_SCANCODE; s < MAX_SCANCODE;
-       s = (SDL_Scancode)(s + 1)) {
-    SetScancode(kd, s, sdl_keyboard_state[s]);
-  }
-}
-
+// Pretty-print for debugging
 inline std::ostream &operator<<(std::ostream &os, const MouseData &md) {
   os << '(' << md.x << ", " << md.y << ')';  // (x,y)
-  os << '[' << (IsClicked(md, SDL_BUTTON_LEFT) ? 'X' : 'O') << ','
-     << (IsClicked(md, SDL_BUTTON_MIDDLE) ? 'X' : 'O') << ','
-     << (IsClicked(md, SDL_BUTTON_RIGHT) ? 'X' : 'O') << ']';  // [X,O,O]
+  os << '[' << (IsButtonPressed(md, SDL_BUTTON_LEFT) ? 'X' : 'O') << ','
+     << (IsButtonPressed(md, SDL_BUTTON_MIDDLE) ? 'X' : 'O') << ','
+     << (IsButtonPressed(md, SDL_BUTTON_RIGHT) ? 'X' : 'O') << ']';  // [X,O,O]
   os << ((md.scroll_amount > 0)   ? '^'
          : (md.scroll_amount < 0) ? 'v'
                                   : 'o')

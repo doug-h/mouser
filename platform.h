@@ -1,4 +1,15 @@
+#pragma once
+
+/*
+Contains the things that need to be implemented before Mouser will run on a
+platform. Since we use SDL2 this is not many things, and could be fewer since
+the socket API is pretty much identical between Linux/MacOS & Windows with minor
+differences like close() vs closesocket().
+ */
+
 #include <SDL2/SDL.h>
+
+#include <memory>
 
 // Every platform has a struct called sockaddr_storage, so we just use their
 // definition
@@ -9,15 +20,7 @@
 #include <Winsock2.h>
 #endif
 
-#include <memory>
-
 #include "input.h"
-
-/* Socket API is pretty much identical between Linux/MacOS & Windows with minor
- differences like close() vs closesocket().
- To make things easier we define an interface for the stuff we want, and
- define it per platform.
- (TBH could just use some #ifdefs instead since the APIs are so similar.) */
 
 // We don't care what this looks like, we just use it to represent an address
 using socket_address = sockaddr_storage;
@@ -26,6 +29,7 @@ using socket_address = sockaddr_storage;
 class Socket {
  public:
   Socket(bool blocking, bool ipv6) : m_blocking(blocking), m_ipv6(ipv6) {}
+  virtual ~Socket() {}
 
   // For Client
   virtual bool Connect(const char *address, const char *port) = 0;
@@ -38,6 +42,7 @@ class Socket {
   virtual bool SendTo(const socket_address &to, const char *message,
                       int message_length) = 0;
 
+ protected:
   bool m_blocking;
   bool m_ipv6;
 };
@@ -45,9 +50,11 @@ class Socket {
 //
 //
 // ========== Define these for each platform ============
+namespace Platform {
 void SetKeys(SDL_Scancode *keys_to_press, SDL_Scancode *keys_to_release,
              int num_to_press, int num_to_release);
 void SetMouse(const MouseData &);
-// Returns base pointer to derived, platform-specific, socket.
+// Returns base pointer of derived, platform-specific, socket.
 std::unique_ptr<Socket> CreateSocket(bool blocking, bool ipv6);
+}  // namespace Platform
 // =======================================================

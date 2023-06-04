@@ -2,7 +2,12 @@
 
 #include <cassert>
 
-Client::Client() : mouse{}, keys{} { socket = CreateSocket(false, false); }
+Client::Client()
+    : mouse{},
+      keys{},
+      socket(Platform::CreateSocket(false, false)),
+      server_book{{"localhost"}},
+      m_running(true) {}
 
 void Client::Connect(const char *_address) {
   std::string address;
@@ -32,8 +37,8 @@ void Client::Connect(const char *_address) {
 }
 
 void Client::UpdateMouse(MousePacket *packet) {
-  memcpy(&mouse, packet, MOUSE_PACKET_SIZE);
-  SetMouse(mouse.data);
+  mouse.data = packet->data;
+  Platform::SetMouse(mouse.data);
   std::cout << mouse.data << '\n';
 }
 
@@ -67,9 +72,10 @@ void Client::UpdateKeys(KeyPacket *packet) {
     }
   }
 
-  SetKeys(keys_to_press, keys_to_release, num_to_press, num_to_release);
+  Platform::SetKeys(keys_to_press, keys_to_release, num_to_press,
+                    num_to_release);
 
-  memcpy(&keys, packet, KEYBOARD_PACKET_SIZE);
+  keys.data = packet->data;
 }
 
 void Client::Run() {

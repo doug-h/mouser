@@ -7,8 +7,8 @@
 
 #include "platform.h"
 
-// I think if you don't call WSACleanup when the process crashes
-// Windows will clean itself up.
+// I believe if you don't call WSACleanup when the process crashes
+// Windows will clean itself up so proper exception handling is not needed.
 // TODO - Test this ^^^
 
 // Basic datagram UDP socket using Winsock2
@@ -33,14 +33,10 @@ class WinSocket final : public Socket {
   SOCKET m_handle;
 };
 
-std::unique_ptr<Socket> CreateSocket(bool blocking, bool ipv6) {
-  return std::make_unique<WinSocket>(blocking, ipv6);
-}
-
 WinSocket::WinSocket(bool blocking, bool ipv6) : Socket(blocking, ipv6) {
   puts("Loading WinSock2.");
-  int iResult;
 
+  int iResult;
   WSADATA WsaData;
   iResult = WSAStartup(MAKEWORD(2, 2), &WsaData);
   if (iResult != NO_ERROR) {
@@ -72,12 +68,13 @@ WinSocket::~WinSocket() {
   int iResult = WSACleanup();
   if (iResult != NO_ERROR) {
     printf("Failed to cleanup Winsock2: %d\n", iResult);
+    // TODO - deal with failure better
     assert(0);
   }
 }
 
 // Used by clients to connect to address::port
-// Since client is 'connection-less' all this does is set a location for later
+// Since we are 'connectionless' all this does is set a location for later
 // send/recv calls
 bool WinSocket::Connect(const char *address, const char *port) {
   addrinfo hints, *servinfo;
@@ -178,3 +175,9 @@ bool WinSocket::SendTo(const socket_address &target, const char *message,
                    (const sockaddr *)&target, sizeof(target));
   return (iResult != SOCKET_ERROR);
 }
+
+namespace Platform {
+std::unique_ptr<Socket> CreateSocket(bool blocking, bool ipv6) {
+  return std::make_unique<WinSocket>(blocking, ipv6);
+}
+}  // namespace Platform

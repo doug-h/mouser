@@ -1,10 +1,20 @@
 #include "server.h"
 
 Server::Server()
-    : mouse{}, keys{}, window{nullptr}, surface{nullptr}, esc{nullptr} {
-  window = SDL_CreateWindow("Mouser", SDL_WINDOWPOS_UNDEFINED,
-                            SDL_WINDOWPOS_UNDEFINED, 200, 100,
-                            SDL_WINDOW_ALWAYS_ON_TOP);
+    : running(true),
+      capturing(false),
+      mouse_has_updated(true),
+      keyboard_sleep_counter(0),
+      mouse{},
+      keys{},
+      socket(Platform::CreateSocket(false, false)),
+
+      window{SDL_CreateWindow("Mouser", SDL_WINDOWPOS_UNDEFINED,
+                              SDL_WINDOWPOS_UNDEFINED, 200, 100,
+                              SDL_WINDOW_ALWAYS_ON_TOP)},
+      keyboard_state{SDL_GetKeyboardState(nullptr)},
+      surface{SDL_GetWindowSurface(window)},
+      esc{SDL_LoadBMP("../assets/esc.bmp")} {
   if (window == nullptr) {
     printf("Unable to create window: %s", SDL_GetError());
     assert(0);
@@ -13,20 +23,58 @@ Server::Server()
     printf("Unable to initialize SDL: %s", SDL_GetError());
     assert(0);
   }
-  surface = SDL_GetWindowSurface(window);
   if (surface == nullptr) {
     printf("Unable to get surface: %s", SDL_GetError());
     assert(0);
   }
-  esc = SDL_LoadBMP("../assets/esc.bmp");
   if (esc == nullptr) {
     printf("Unable to load esc.bmp: %s", SDL_GetError());
     assert(0);
   }
+}
 
-  keyboard_state = SDL_GetKeyboardState(nullptr);
+void Server::Start() {
+  if (!socket->Bind(port)) {
+    assert(0);
+  }
 
-  socket = CreateSocket(false, false);
+  while (running) {
+    ProcessEvents();
+
+    CheckForMessages();
+
+    if (capturing and mouse_has_updated) {
+      mouse.data.button = (uint8_t)SDL_GetMouseState(nullptr, nullptr);
+      Send((char *)&mouse, MOUSE_PACKET_SIZE);
+      mouse.data.scroll_amount = 0;
+    }
+    // We continue to send keyboard packets for a short time after all keys
+    // have been released to make sure the client doesn't miss it
+    if (capturing and keyboard_sleep_counter) {
+      PackKeyboardState();
+      Send((char *)&keys, KEYBOARD_PACKET_SIZE);
+      --keyboard_sleep_counter;
+    }
+
+    if (mouse_has_updated or keyboard_sleep_counter) {
+      mouse_has_updated = false;
+      SDL_Delay(delay);
+    }
+  }
+};
+
+void Server::Send(const char *buffer, int bufferlen) {
+  // TODO - handle errors
+  for (const auto &a : clients) {
+    socket->SendTo(a, buffer, bufferlen);
+  }
+}
+
+void Server::PackKeyboardState() {
+  for (SDL_Scancode s = MIN_SCANCODE; s < MAX_SCANCODE;
+       s = (SDL_Scancode)(s + 1)) {
+    SetScancode(keys.data, s, keyboard_state[s]);
+  }
 }
 
 void Server::ProcessEvents() {
@@ -83,27 +131,6 @@ void Server::ProcessEvents() {
     }
   }
 }
-void Server::StartCapturing() {
-  assert(not capturing);
-  capturing = true;
-  std::cout << "START\n";
-  SDL_SetRelativeMouseMode(SDL_TRUE);
-  SDL_SetWindowKeyboardGrab(window, SDL_TRUE);
-  SDL_BlitSurface(esc, nullptr, surface, nullptr);
-  SDL_UpdateWindowSurface(window);
-}
-
-void Server::StopCapturing() {
-  assert(capturing);
-  capturing = false;
-  std::cout << "STOP\n";
-  SDL_SetRelativeMouseMode(SDL_FALSE);
-  SDL_SetWindowKeyboardGrab(window, SDL_FALSE);
-  SDL_Rect screen = {0, 0, 200, 100};
-  Uint32 white = SDL_MapRGB(surface->format, 255, 255, 255);
-  SDL_FillRect(surface, &screen, white);
-  SDL_UpdateWindowSurface(window);
-}
 
 void Server::CheckForMessages() {
   sockaddr_storage client;
@@ -126,42 +153,27 @@ void Server::CheckForMessages() {
   }
 }
 
-void Server::Send(const char *buffer, int bufferlen) {
-  // TODO - handle errors
-  for (const auto &a : clients) {
-    socket->SendTo(a, buffer, bufferlen);
-  }
+void Server::StartCapturing() {
+  assert(not capturing);
+  capturing = true;
+  std::cout << "START\n";
+  SDL_SetRelativeMouseMode(SDL_TRUE);
+  SDL_SetWindowKeyboardGrab(window, SDL_TRUE);
+  SDL_BlitSurface(esc, nullptr, surface, nullptr);
+  SDL_UpdateWindowSurface(window);
 }
 
-void Server::Start() {
-  if (!socket->Bind(port)) {
-    assert(0);
-  }
-
-  while (running) {
-    ProcessEvents();
-
-    CheckForMessages();
-
-    if (capturing and mouse_has_updated) {
-      mouse.data.button = (uint8_t)SDL_GetMouseState(nullptr, nullptr);
-      Send((char *)&mouse, MOUSE_PACKET_SIZE);
-      mouse.data.scroll_amount = 0;
-    }
-    // We continue to send keyboard packets for a short time after all keys
-    // have been released to make sure the client doesn't miss it
-    if (capturing and keyboard_sleep_counter) {
-      CopySDLKeyData(keys.data, keyboard_state);
-      Send((char *)&keys, KEYBOARD_PACKET_SIZE);
-      --keyboard_sleep_counter;
-    }
-
-    if (mouse_has_updated or keyboard_sleep_counter) {
-      mouse_has_updated = false;
-      SDL_Delay(delay);
-    }
-  }
-};
+void Server::StopCapturing() {
+  assert(capturing);
+  capturing = false;
+  std::cout << "STOP\n";
+  SDL_SetRelativeMouseMode(SDL_FALSE);
+  SDL_SetWindowKeyboardGrab(window, SDL_FALSE);
+  SDL_Rect screen = {0, 0, 200, 100};
+  Uint32 white = SDL_MapRGB(surface->format, 255, 255, 255);
+  SDL_FillRect(surface, &screen, white);
+  SDL_UpdateWindowSurface(window);
+}
 
 int main(int argv, char **args) {
   Server server;

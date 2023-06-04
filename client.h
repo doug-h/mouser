@@ -1,12 +1,10 @@
 
-
-//
 #include <SDL2/SDL.h>
 
 #include <memory>
 #include <vector>
 
-#include "network.h"
+#include "packet.h"
 #include "platform.h"
 
 class Client {
@@ -23,6 +21,13 @@ class Client {
 
   void Quit() { m_running = false; };
 
+ public:
+  static constexpr int rate = 500;  // Hz
+  static constexpr int delay = 1000 / rate;
+  static constexpr const char *const port = "34197";
+  // Is that really how you write that??
+
+ private:
   // Storing as packets is easier for sending/receiving
   MousePacket mouse;
   KeyPacket keys;
@@ -31,11 +36,7 @@ class Client {
   std::unique_ptr<Socket> socket;
 
   // List of known ip addresses
-  std::vector<std::string> server_book = {"localhost"};
+  std::vector<std::string> server_book;
 
-  const int rate = 500;  // Hz
-  const int delay = 1000 / rate;
-  const char *const port = "34197";
-
-  bool m_running = true;
+  bool m_running;
 };

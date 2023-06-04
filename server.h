@@ -10,7 +10,7 @@
 #include <vector>
 
 #include "input.h"
-#include "network.h"
+#include "packet.h"
 #include "platform.h"
 
 class Server {
@@ -20,6 +20,7 @@ class Server {
 
  private:
   void Send(const char *buffer, int buffer_length);
+  void PackKeyboardState();
 
   void ProcessEvents();
   void CheckForMessages();
@@ -33,13 +34,14 @@ class Server {
   const int delay = 1000 / rate;
   const char *const port = "34197";
 
-  bool running = true;
-  bool capturing = false;
+  bool running;
+  bool capturing;
 
-  bool mouse_has_updated = true;
+  bool mouse_has_updated;
+
   // ticks to wait before we stop sending input
   const int keyboard_sleep_time = rate;
-  int keyboard_sleep_counter = 0;
+  int keyboard_sleep_counter;
 
   MousePacket mouse;
   KeyPacket keys;

@@ -14,11 +14,11 @@
 #include "platform.h"
 
 class Server {
- public:
+public:
   Server();
   void Start();
 
- private:
+private:
   void Send(const char *buffer, int buffer_length);
   void PackKeyboardState();
 
@@ -30,7 +30,7 @@ class Server {
 
   void Quit() { running = false; };
 
-  const int rate = 50;  // Hz
+  const int rate = 50; // Hz
   const int delay = 1000 / rate;
   const char *const port = "34197";
 
@@ -49,7 +49,7 @@ class Server {
   // Platform specific
   std::unique_ptr<Socket> socket;
 
-  std::vector<socket_address> clients;
+  std::vector<sockaddr_storage> clients;
 
   SDL_Window *window;
   const Uint8 *keyboard_state;

@@ -1,31 +1,18 @@
 
 #define WIN32_LEAN_AND_MEAN
 #include "Windows.h"
-/* Mixing SDL and win32 api bad idea,
- * for now make sure win32 included before SDL. */
-//
+#undef WIN32_LEAN_AND_MEAN
+/* Mixing SDL and win32 headers bad idea as SDL has its own windows includes,
+ * for now make sure win32 included before anything from SDL. */
+
 #include "input.h"
 #include "platform.h"
 #include "win32_scancode_table.h"
 
-// We use virtual_key == 0 to mean no match (I don't think anything is
-// actually mapped to that value)
-WORD GetWindowsVKey(SDL_Scancode s) {
-  static bool table_initialised;
-  if (!table_initialised) {
-    PopulateScancodeTable();
-    table_initialised = true;
-  }
-
-  UINT win_scancode = sdl_windows_scancode_table[s];
-  if (win_scancode) {
-    return (WORD)MapVirtualKeyA(win_scancode, MAPVK_VSC_TO_VK);
-  }
-  return 0;
-}
 
 namespace Platform {
-void SetMouse(const MouseData &md) {
+void SetMouse(const MouseData &md)
+{
   SetCursorPos(md.x, md.y);
 
   bool L_button_down = GetKeyState(VK_LBUTTON) & 128;
@@ -58,11 +45,11 @@ void SetMouse(const MouseData &md) {
 }
 
 void SetKeys(SDL_Scancode *keys_to_press, SDL_Scancode *keys_to_release,
-             int num_to_press, int num_to_release) {
+             int num_to_press, int num_to_release)
+{
   // We commit 'key_buffer_size' inputs at a time
   const int key_buffer_size = 16;
-  static INPUT key_input[key_buffer_size];
-  // NOTE - we rely on key_input being zero initialised
+  INPUT key_input[key_buffer_size] = {0};
 
   do {
     int n = std::min(16, num_to_press);
@@ -92,4 +79,4 @@ void SetKeys(SDL_Scancode *keys_to_press, SDL_Scancode *keys_to_release,
     keys_to_release += key_buffer_size;
   } while (num_to_release > key_buffer_size);
 }
-}  // namespace Platform
+} // namespace Platform

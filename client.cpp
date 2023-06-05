@@ -3,13 +3,13 @@
 #include <cassert>
 
 Client::Client()
-    : mouse{},
-      keys{},
-      socket(Platform::CreateSocket(false, false)),
-      server_book{{"localhost"}},
-      m_running(true) {}
+    : mouse{}, keys{},
+      socket(Platform::CreateSocket(false, false)), server_book{{"localhost"}},
+      m_running(true)
+{}
 
-void Client::Connect(const char *_address) {
+void Client::Connect(const char *_address)
+{
   std::string address;
   if (_address != nullptr) {
     address = _address;
@@ -36,13 +36,15 @@ void Client::Connect(const char *_address) {
   socket->Send(msg, sizeof(msg));
 }
 
-void Client::UpdateMouse(MousePacket *packet) {
+void Client::UpdateMouse(MousePacket *packet)
+{
   mouse.data = packet->data;
   Platform::SetMouse(mouse.data);
   std::cout << mouse.data << '\n';
 }
 
-void Client::UpdateKeys(KeyPacket *packet) {
+void Client::UpdateKeys(KeyPacket *packet)
+{
   // TODO - rework this, dont need 4KB of ints for a couple key inputs
   static SDL_Scancode keys_to_press[SDL_NUM_SCANCODES];
   static SDL_Scancode keys_to_release[SDL_NUM_SCANCODES];
@@ -53,6 +55,7 @@ void Client::UpdateKeys(KeyPacket *packet) {
   uint8_t *received = packet->data.packed_scancodes;
   uint8_t *stored = keys.data.packed_scancodes;
 
+  // Unpack key state
   for (size_t byte = 0; byte < N_BYTES; ++byte) {
     uint8_t diff = received[byte] ^ stored[byte];
     int bit = 0;
@@ -78,31 +81,32 @@ void Client::UpdateKeys(KeyPacket *packet) {
   keys.data = packet->data;
 }
 
-void Client::Run() {
+void Client::Run()
+{
   while (m_running) {
     char msg[MAX_PACKET_SIZE];
 
     int n_bytes = socket->Receive(msg, MAX_PACKET_SIZE);
     if (n_bytes) {
       switch (CheckPacketType(msg)) {
-        case MOUSE:
-          // puts("Mouse packet");
-          assert(n_bytes == MOUSE_PACKET_SIZE);
+      case MOUSE:
+        // puts("Mouse packet");
+        assert(n_bytes == MOUSE_PACKET_SIZE);
 
-          UpdateMouse((MousePacket *)msg);
-          break;
-        case KEYBOARD:
-          assert(n_bytes == KEYBOARD_PACKET_SIZE);
-          // puts("Keyboard packet");
-          UpdateKeys((KeyPacket *)msg);
-          break;
-        case COMMAND:
-          puts("Received command.");
-          break;
-        case UNKNOWN:
-        default:
-          puts("Unrecognised packet.");
-          break;
+        UpdateMouse((MousePacket *)msg);
+        break;
+      case KEYBOARD:
+        assert(n_bytes == KEYBOARD_PACKET_SIZE);
+        // puts("Keyboard packet");
+        UpdateKeys((KeyPacket *)msg);
+        break;
+      case COMMAND:
+        puts("Received command.");
+        break;
+      case UNKNOWN:
+      default:
+        puts("Unrecognised packet.");
+        break;
       }
 
       SDL_Delay(delay);
@@ -110,7 +114,8 @@ void Client::Run() {
   }
 }
 
-int main(int argv, char **args) {
+int main(int argv, char **args)
+{
   Client client;
 
   client.Connect(args[1]);

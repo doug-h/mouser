@@ -9,7 +9,9 @@ differences like close() vs closesocket().
 
 #include <SDL2/SDL.h>
 
+#include "input.h"
 #include <memory>
+
 
 // Every platform has a struct called sockaddr_storage, so we just use their
 // definition
@@ -20,14 +22,9 @@ differences like close() vs closesocket().
 #include <Winsock2.h>
 #endif
 
-#include "input.h"
-
-// We don't care what this looks like, we just use it to represent an address
-using socket_address = sockaddr_storage;
-
 // ========= Implement this for each platform ============
 class Socket {
- public:
+public:
   Socket(bool blocking, bool ipv6) : m_blocking(blocking), m_ipv6(ipv6) {}
   virtual ~Socket() {}
 
@@ -38,23 +35,24 @@ class Socket {
 
   // For Server
   virtual bool Bind(const char *port) = 0;
-  virtual int Listen(char *buffer, int buffer_len, socket_address &from) = 0;
-  virtual bool SendTo(const socket_address &to, const char *message,
+  virtual int Listen(char *buffer, int buffer_len,
+                     sockaddr_storage &sender) = 0;
+  virtual bool SendTo(const sockaddr_storage &to, const char *message,
                       int message_length) = 0;
 
- protected:
+protected:
   bool m_blocking;
   bool m_ipv6;
 };
 // ==========================================================
 //
 //
-// ========== Define these for each platform ============
+// ========== Define these for each platform ==============
 namespace Platform {
 void SetKeys(SDL_Scancode *keys_to_press, SDL_Scancode *keys_to_release,
              int num_to_press, int num_to_release);
 void SetMouse(const MouseData &);
 // Returns base pointer of derived, platform-specific, socket.
 std::unique_ptr<Socket> CreateSocket(bool blocking, bool ipv6);
-}  // namespace Platform
+} // namespace Platform
 // =======================================================

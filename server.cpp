@@ -1,20 +1,17 @@
 #include "server.h"
 
 Server::Server()
-    : running(true),
-      capturing(false),
-      mouse_has_updated(true),
-      keyboard_sleep_counter(0),
-      mouse{},
-      keys{},
+    : running(true), capturing(false), mouse_has_updated(true),
+      keyboard_sleep_counter(0), mouse{}, keys{},
       socket(Platform::CreateSocket(false, false)),
 
       window{SDL_CreateWindow("Mouser", SDL_WINDOWPOS_UNDEFINED,
                               SDL_WINDOWPOS_UNDEFINED, 200, 100,
                               SDL_WINDOW_ALWAYS_ON_TOP)},
       keyboard_state{SDL_GetKeyboardState(nullptr)},
-      surface{SDL_GetWindowSurface(window)},
-      esc{SDL_LoadBMP("../assets/esc.bmp")} {
+      surface{SDL_GetWindowSurface(window)}, esc{SDL_LoadBMP(
+                                                 "../assets/esc.bmp")}
+{
   if (window == nullptr) {
     printf("Unable to create window: %s", SDL_GetError());
     assert(0);
@@ -33,10 +30,9 @@ Server::Server()
   }
 }
 
-void Server::Start() {
-  if (!socket->Bind(port)) {
-    assert(0);
-  }
+void Server::Start()
+{
+  if (!socket->Bind(port)) { assert(0); }
 
   while (running) {
     ProcessEvents();
@@ -63,25 +59,28 @@ void Server::Start() {
   }
 };
 
-void Server::Send(const char *buffer, int bufferlen) {
+void Server::Send(const char *buffer, int bufferlen)
+{
   // TODO - handle errors
   for (const auto &a : clients) {
     socket->SendTo(a, buffer, bufferlen);
   }
 }
 
-void Server::PackKeyboardState() {
+void Server::PackKeyboardState()
+{
   for (SDL_Scancode s = MIN_SCANCODE; s < MAX_SCANCODE;
        s = (SDL_Scancode)(s + 1)) {
     SetScancode(keys.data, s, keyboard_state[s]);
   }
 }
 
-void Server::ProcessEvents() {
+void Server::ProcessEvents()
+{
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
     // ---------- Events that always happen ----------
-    if (e.type == SDL_QUIT) {  // 0x100
+    if (e.type == SDL_QUIT) { // 0x100
       Quit();
     }
     // ---------- Events when input is NOT captured ----------
@@ -98,13 +97,13 @@ void Server::ProcessEvents() {
 
     // ---------- Events when input IS captured ----------
     else {
-      if (e.type == SDL_KEYDOWN or e.type == SDL_KEYUP) {  // 0x300 / 0x301
+      if (e.type == SDL_KEYDOWN or e.type == SDL_KEYUP) { // 0x300 / 0x301
         if (e.key.keysym.sym == SDLK_ESCAPE) {
           StopCapturing();
         } else {
           keyboard_sleep_counter = keyboard_sleep_time;
         }
-      } else if (e.type == SDL_MOUSEMOTION) {  // 0x400
+      } else if (e.type == SDL_MOUSEMOTION) { // 0x400
         /* Mouse is constrained to small (200x100) window,
          * so we have to do screen clamping */
         mouse.data.x =
@@ -113,14 +112,12 @@ void Server::ProcessEvents() {
             (uint16_t)std::clamp(mouse.data.y + e.motion.yrel, 0, 1080);
         mouse_has_updated = true;
 
-      } else if (e.type == SDL_MOUSEBUTTONDOWN) {  // 0x401
+      } else if (e.type == SDL_MOUSEBUTTONDOWN) { // 0x401
+        mouse_has_updated = true;
+      } else if (e.type == SDL_MOUSEBUTTONUP) { // 0x402
         mouse_has_updated = true;
 
-      } else if (e.type == SDL_MOUSEBUTTONUP) {  // 0x402
-
-        mouse_has_updated = true;
-
-      } else if (e.type == SDL_MOUSEWHEEL) {  // 0x403
+      } else if (e.type == SDL_MOUSEWHEEL) { // 0x403
         mouse.data.scroll_amount += (int8_t)e.wheel.y;
         mouse_has_updated = true;
 
@@ -132,7 +129,8 @@ void Server::ProcessEvents() {
   }
 }
 
-void Server::CheckForMessages() {
+void Server::CheckForMessages()
+{
   sockaddr_storage client;
 
   char message[8];
@@ -153,7 +151,8 @@ void Server::CheckForMessages() {
   }
 }
 
-void Server::StartCapturing() {
+void Server::StartCapturing()
+{
   assert(not capturing);
   capturing = true;
   std::cout << "START\n";
@@ -163,7 +162,8 @@ void Server::StartCapturing() {
   SDL_UpdateWindowSurface(window);
 }
 
-void Server::StopCapturing() {
+void Server::StopCapturing()
+{
   assert(capturing);
   capturing = false;
   std::cout << "STOP\n";
@@ -175,7 +175,8 @@ void Server::StopCapturing() {
   SDL_UpdateWindowSurface(window);
 }
 
-int main(int argv, char **args) {
+int main(int argv, char **args)
+{
   Server server;
   server.Start();
   return 0;

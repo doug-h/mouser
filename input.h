@@ -15,7 +15,7 @@ const size_t N_BYTES = (MAX_SCANCODE - MIN_SCANCODE + 1 + 7) / 8;
 //  client/server have compatible SDL2 versions
 
 struct MouseData {
-  uint16_t x, y;
+  int16_t x, y;
   uint8_t button;
   int8_t scroll_amount;
 };
@@ -27,11 +27,13 @@ struct KeyData {
 
 // Retrieve the state of a button in MouseData
 // SDL_button_id is one of SDL_BUTTON_LEFT, SDL_BUTTON_MIDDLE, SDL_BUTTON_MIDDLE
-inline bool IsButtonPressed(const MouseData &md, int SDL_button_id) {
+inline bool IsButtonPressed(const MouseData &md, int SDL_button_id)
+{
   return SDL_BUTTON(SDL_button_id) & md.button;
 }
 
-inline void SetScancode(KeyData &kd, SDL_Scancode s, bool pressed) {
+inline void SetScancode(KeyData &kd, SDL_Scancode s, bool pressed)
+{
   size_t index = s - MIN_SCANCODE;
   size_t byte_index = index / 8;
   size_t bit = index % 8;
@@ -41,12 +43,13 @@ inline void SetScancode(KeyData &kd, SDL_Scancode s, bool pressed) {
       (uint8_t)(kd.packed_scancodes[byte_index] & ~(1 << bit)) | (value << bit);
 }
 
-// Pretty-print for debugging
-inline std::ostream &operator<<(std::ostream &os, const MouseData &md) {
-  os << '(' << md.x << ", " << md.y << ')';  // (x,y)
+// "Pretty"-print for debugging
+inline std::ostream &operator<<(std::ostream &os, const MouseData &md)
+{
+  os << '(' << md.x << ", " << md.y << ')'; // (x,y)
   os << '[' << (IsButtonPressed(md, SDL_BUTTON_LEFT) ? 'X' : 'O') << ','
      << (IsButtonPressed(md, SDL_BUTTON_MIDDLE) ? 'X' : 'O') << ','
-     << (IsButtonPressed(md, SDL_BUTTON_RIGHT) ? 'X' : 'O') << ']';  // [X,O,O]
+     << (IsButtonPressed(md, SDL_BUTTON_RIGHT) ? 'X' : 'O') << ']'; // [X,O,O]
   os << ((md.scroll_amount > 0)   ? '^'
          : (md.scroll_amount < 0) ? 'v'
                                   : 'o')

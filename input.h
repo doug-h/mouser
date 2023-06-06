@@ -46,7 +46,7 @@ inline void SetScancode(KeyData &kd, SDL_Scancode s, bool pressed)
 // "Pretty"-print for debugging
 inline std::ostream &operator<<(std::ostream &os, const MouseData &md)
 {
-  os << '(' << md.dx << ", " << md.dy << ')'; // (x,y)
+  os << '(' << (int)md.dx << ", " << (int)md.dy << ')'; // (x,y)
   os << '[' << (IsButtonPressed(md, SDL_BUTTON_LEFT) ? 'X' : 'O') << ','
      << (IsButtonPressed(md, SDL_BUTTON_MIDDLE) ? 'X' : 'O') << ','
      << (IsButtonPressed(md, SDL_BUTTON_RIGHT) ? 'X' : 'O') << ']'; // [X,O,O]

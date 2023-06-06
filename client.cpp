@@ -3,9 +3,8 @@
 #include <cassert>
 
 Client::Client()
-    : mouse{}, keys{},
-      socket(Platform::CreateSocket(false, false)), server_book{{"localhost"}},
-      m_running(true)
+    : mouse{}, keys{}, server_book{{"localhost"}},
+      socket(Platform::CreateSocket(false, false)), m_running(true)
 {}
 
 void Client::Connect(const char *_address)
@@ -108,9 +107,8 @@ void Client::Run()
         puts("Unrecognised packet.");
         break;
       }
-
-      SDL_Delay(delay);
     }
+    SDL_Delay(delay);
   }
 }
 

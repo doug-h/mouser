@@ -25,8 +25,8 @@ class WinSocket final : public Socket {
   // For Server
   virtual bool Bind(const char *port) override;
   virtual int Listen(char *buffer, int buffer_len,
-                     socket_address &from) override;
-  virtual bool SendTo(const socket_address &to, const char *message,
+                     sockaddr_storage &from) override;
+  virtual bool SendTo(const sockaddr_storage &to, const char *message,
                       int message_length) override;
 
  private:
@@ -146,7 +146,7 @@ bool WinSocket::Bind(const char *port) {
   return true;
 }
 
-int WinSocket::Listen(char *buffer, int buffer_len, socket_address &sender) {
+int WinSocket::Listen(char *buffer, int buffer_len, sockaddr_storage &sender) {
   int iResult;
   int sen_len = sizeof(sender);
   iResult =
@@ -168,7 +168,7 @@ int WinSocket::Listen(char *buffer, int buffer_len, socket_address &sender) {
   return iResult;
 }
 
-bool WinSocket::SendTo(const socket_address &target, const char *message,
+bool WinSocket::SendTo(const sockaddr_storage &target, const char *message,
                        int message_length) {
   int iResult;
   iResult = sendto(m_handle, message, message_length, 0,

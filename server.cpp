@@ -3,15 +3,15 @@
 Server::Server()
     : running(true), capturing(false), mouse_has_updated(true),
       keyboard_sleep_counter(0), mouse{}, keys{},
-      socket(Platform::CreateSocket(false, false)),
 
       window{SDL_CreateWindow("Mouser", SDL_WINDOWPOS_UNDEFINED,
                               SDL_WINDOWPOS_UNDEFINED, 200, 100,
                               SDL_WINDOW_ALWAYS_ON_TOP)},
       keyboard_state{SDL_GetKeyboardState(nullptr)},
       surface{SDL_GetWindowSurface(window)}, esc{SDL_LoadBMP(
-                                                 "../assets/esc.bmp")}
-{
+                                                 "../assets/esc.bmp")},
+
+      socket(Platform::CreateSocket(false, false)) {
   if (window == nullptr) {
     printf("Unable to create window: %s\n", SDL_GetError());
     assert(0);
@@ -30,9 +30,10 @@ Server::Server()
   }
 }
 
-void Server::Start()
-{
-  if (!socket->Bind(port)) { assert(0); }
+void Server::Start() {
+  if (!socket->Bind(port)) {
+    assert(0);
+  }
 
   while (running) {
     ProcessEvents();
@@ -42,6 +43,8 @@ void Server::Start()
     if (capturing and mouse_has_updated) {
       mouse.data.button = (uint8_t)SDL_GetMouseState(nullptr, nullptr);
       Send((char *)&mouse, MOUSE_PACKET_SIZE);
+      mouse.data.dx = 0;
+      mouse.data.dy = 0;
       mouse.data.scroll_amount = 0;
     }
     // We continue to send keyboard packets for a short time after all keys
@@ -54,29 +57,26 @@ void Server::Start()
 
     if (mouse_has_updated or keyboard_sleep_counter) {
       mouse_has_updated = false;
-      SDL_Delay(delay);
     }
+    SDL_Delay(delay);
   }
 };
 
-void Server::Send(const char *buffer, int bufferlen)
-{
+void Server::Send(const char *buffer, int bufferlen) {
   // TODO - handle errors
   for (const auto &a : clients) {
     socket->SendTo(a, buffer, bufferlen);
   }
 }
 
-void Server::PackKeyboardState()
-{
+void Server::PackKeyboardState() {
   for (SDL_Scancode s = MIN_SCANCODE; s < MAX_SCANCODE;
        s = (SDL_Scancode)(s + 1)) {
     SetScancode(keys.data, s, keyboard_state[s]);
   }
 }
 
-void Server::ProcessEvents()
-{
+void Server::ProcessEvents() {
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
     // ---------- Events that always happen ----------
@@ -104,8 +104,8 @@ void Server::ProcessEvents()
           keyboard_sleep_counter = keyboard_sleep_time;
         }
       } else if (e.type == SDL_MOUSEMOTION) { // 0x400
-        mouse.data.dx = e.motion.xrel;
-        mouse.data.dy = e.motion.yrel;
+        mouse.data.dx += e.motion.xrel;
+        mouse.data.dy += e.motion.yrel;
         mouse_has_updated = true;
 
       } else if (e.type == SDL_MOUSEBUTTONDOWN) { // 0x401
@@ -125,8 +125,7 @@ void Server::ProcessEvents()
   }
 }
 
-void Server::CheckForMessages()
-{
+void Server::CheckForMessages() {
   sockaddr_storage client;
 
   char message[8];
@@ -147,8 +146,7 @@ void Server::CheckForMessages()
   }
 }
 
-void Server::StartCapturing()
-{
+void Server::StartCapturing() {
   assert(not capturing);
   capturing = true;
   std::cout << "START\n";
@@ -158,8 +156,7 @@ void Server::StartCapturing()
   SDL_UpdateWindowSurface(window);
 }
 
-void Server::StopCapturing()
-{
+void Server::StopCapturing() {
   assert(capturing);
   capturing = false;
   std::cout << "STOP\n";
@@ -171,8 +168,7 @@ void Server::StopCapturing()
   SDL_UpdateWindowSurface(window);
 }
 
-int main(int argv, char **args)
-{
+int main(int argv, char **args) {
   Server server;
   server.Start();
   return 0;

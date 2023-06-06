@@ -15,7 +15,7 @@ const size_t N_BYTES = (MAX_SCANCODE - MIN_SCANCODE + 1 + 7) / 8;
 //  client/server have compatible SDL2 versions
 
 struct MouseData {
-  int16_t x, y;
+  int8_t dx, dy;
   uint8_t button;
   int8_t scroll_amount;
 };
@@ -46,7 +46,7 @@ inline void SetScancode(KeyData &kd, SDL_Scancode s, bool pressed)
 // "Pretty"-print for debugging
 inline std::ostream &operator<<(std::ostream &os, const MouseData &md)
 {
-  os << '(' << md.x << ", " << md.y << ')'; // (x,y)
+  os << '(' << md.dx << ", " << md.dy << ')'; // (x,y)
   os << '[' << (IsButtonPressed(md, SDL_BUTTON_LEFT) ? 'X' : 'O') << ','
      << (IsButtonPressed(md, SDL_BUTTON_MIDDLE) ? 'X' : 'O') << ','
      << (IsButtonPressed(md, SDL_BUTTON_RIGHT) ? 'X' : 'O') << ']'; // [X,O,O]

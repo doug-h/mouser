@@ -15,33 +15,40 @@ void SetMouse(const MouseData &md)
 {
   SetCursorPos(md.x, md.y);
 
+  // Could combine some inputs...
+  INPUT mouse_inputs;
+  memset(mouse_inputs, 0, sizeof(INPUT));
+  mouse_inputs.type = INPUT_MOUSE;
+
+  // We only send button inputs if the current state is wrong
   bool L_button_down = GetKeyState(VK_LBUTTON) & 128;
   bool M_button_down = GetKeyState(VK_MBUTTON) & 128;
   bool R_button_down = GetKeyState(VK_RBUTTON) & 128;
-
-  INPUT mouse_buttons[3];
-  memset(mouse_buttons, 0, 3 * sizeof(INPUT));
-  mouse_buttons[0].type = INPUT_MOUSE;
-  mouse_buttons[1].type = INPUT_MOUSE;
-  mouse_buttons[2].type = INPUT_MOUSE;
-
-  int n_buttons_updated = 0;
-
   if (L_button_down != IsButtonPressed(md, SDL_BUTTON_LEFT)) {
-    mouse_buttons[n_buttons_updated++].mi.dwFlags =
+    mouse_inputs.mi.dwFlags |=
         L_button_down ? MOUSEEVENTF_LEFTUP : MOUSEEVENTF_LEFTDOWN;
   }
   if (M_button_down != IsButtonPressed(md, SDL_BUTTON_MIDDLE)) {
-    mouse_buttons[n_buttons_updated++].mi.dwFlags =
+    mouse_inputs.mi.dwFlags |=
         M_button_down ? MOUSEEVENTF_MIDDLEUP : MOUSEEVENTF_MIDDLEDOWN;
   }
   if (R_button_down != IsButtonPressed(md, SDL_BUTTON_RIGHT)) {
-    mouse_buttons[n_buttons_updated++].mi.dwFlags =
+    mouse_inputs.mi.dwFlags |=
         R_button_down ? MOUSEEVENTF_RIGHTUP : MOUSEEVENTF_RIGHTDOWN;
   }
+  if (md.dx != 0 or md.dy != 0) {
+    mouse_inputs.mi.dwFlags |= MOUSEEVENTF_MOVE;
+    mouse_inputs.mi.dx = dx;
+    mouse_inputs.mi.dy = dy;
+  }
 
-  if (n_buttons_updated)
-    SendInput(n_buttons_updated, mouse_buttons, sizeof(INPUT));
+  if (md.scroll_amount != 0) {
+    mouse_inputs.mi.dwFlags |= MOUSEEVENTF_WHEEL;
+    mouse_inputs.mi.mouseData = scroll_amount;
+    // WHEEL_DELTA
+  }
+
+  if (mouse_input.mi.dwFlags != 0) SendInput(1, mouse_input, sizeof(INPUT));
 }
 
 void SetKeys(SDL_Scancode *keys_to_press, SDL_Scancode *keys_to_release,

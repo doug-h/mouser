@@ -104,12 +104,8 @@ void Server::ProcessEvents()
           keyboard_sleep_counter = keyboard_sleep_time;
         }
       } else if (e.type == SDL_MOUSEMOTION) { // 0x400
-        /* Mouse is constrained to small (200x100) window,
-         * so we have to do screen clamping */
-        mouse.data.x =
-            (uint16_t)std::clamp(mouse.data.x + e.motion.xrel, 0, 1920);
-        mouse.data.y =
-            (uint16_t)std::clamp(mouse.data.y + e.motion.yrel, 0, 1080);
+        mouse.data.dx = e.motion.xrel;
+        mouse.data.dy = e.motion.yrel;
         mouse_has_updated = true;
 
       } else if (e.type == SDL_MOUSEBUTTONDOWN) { // 0x401

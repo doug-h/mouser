@@ -96,7 +96,8 @@
        X( SDL_SCANCODE_LANG4,              KEY_HIRAGANA)\
        X( SDL_SCANCODE_INTERNATIONAL4,     KEY_HENKAN)\
        X( SDL_SCANCODE_INTERNATIONAL2,     KEY_KATAKANAHIRAGANA)\
-       X( SDL_SCANCODE_INTERNATIONAL5,     KEY_MUHENKAN)\
+       /* TODO - check what this does */ \
+       /*X( SDL_SCANCODE_INTERNATIONAL5,     KEY_MUHENKAN)\ */ \
        X( SDL_SCANCODE_INTERNATIONAL5,     KEY_KPJPCOMMA)\
        X( SDL_SCANCODE_KP_ENTER,           KEY_KPENTER)\
        X( SDL_SCANCODE_RCTRL,              KEY_RIGHTCTRL)\
@@ -147,7 +148,8 @@
        X( SDL_SCANCODE_AC_BACK,            KEY_BACK)\
        X( SDL_SCANCODE_AC_FORWARD,         KEY_FORWARD)\
        X( SDL_SCANCODE_EJECT,              KEY_EJECTCD)\
-       X( SDL_SCANCODE_EJECT,              KEY_EJECTCLOSECD)\
+       /* TODO - check what this does */ \
+       /* X( SDL_SCANCODE_EJECT,              KEY_EJECTCLOSECD)*/ \
        X( SDL_SCANCODE_AUDIONEXT,          KEY_NEXTSONG)\
        X( SDL_SCANCODE_AUDIOPLAY,          KEY_PLAYPAUSE)\
        X( SDL_SCANCODE_AUDIOPREV,          KEY_PREVIOUSSONG)\
@@ -157,7 +159,8 @@
        X( SDL_SCANCODE_AC_REFRESH,         KEY_REFRESH)\
        X( SDL_SCANCODE_KP_LEFTPAREN,       KEY_KPLEFTPAREN)\
        X( SDL_SCANCODE_KP_RIGHTPAREN,      KEY_KPRIGHTPAREN)\
-       X( SDL_SCANCODE_AGAIN,              KEY_REDO)\
+       /* TODO - check what this does */ \
+       /* X( SDL_SCANCODE_AGAIN,              KEY_REDO)\ */ \
        X( SDL_SCANCODE_F13,                KEY_F13)\
        X( SDL_SCANCODE_F14,                KEY_F14)\
        X( SDL_SCANCODE_F15,                KEY_F15)\
@@ -170,11 +173,14 @@
        X( SDL_SCANCODE_F22,                KEY_F22)\
        X( SDL_SCANCODE_F23,                KEY_F23)\
        X( SDL_SCANCODE_F24,                KEY_F24)\
-       X( SDL_SCANCODE_AUDIOPLAY,          KEY_PLAYCD)\
-       X( SDL_SCANCODE_AUDIOPLAY,          KEY_PLAY)\
+        /* TODO - check what this does */ \
+       /*X( SDL_SCANCODE_AUDIOPLAY,          KEY_PLAYCD)\ */\
+       /* TODO - check what this does */ \
+       /*X( SDL_SCANCODE_AUDIOPLAY,          KEY_PLAY)\*/\
        X( SDL_SCANCODE_AUDIOFASTFORWARD,   KEY_FASTFORWARD)\
        X( SDL_SCANCODE_PRINTSCREEN,        KEY_PRINT)\
-       X( SDL_SCANCODE_MAIL,               KEY_EMAIL)\
+       /* TODO - check what this does */ \
+       /*X( SDL_SCANCODE_MAIL,               KEY_EMAIL)\ */\
        X( SDL_SCANCODE_AC_SEARCH,          KEY_SEARCH)\
        X( SDL_SCANCODE_ALTERASE,           KEY_ALTERASE)\
        X( SDL_SCANCODE_CANCEL,             KEY_CANCEL)\
@@ -187,18 +193,21 @@
        X( SDL_SCANCODE_KBDILLUMUP,         KEY_KBDILLUMUP)
 /* clang-format on */
 
+void FillTable(uint8_t *table)
+{
+#define FILL_TABLE(SDL_CODE, LINUX_CODE)                                       \
+  table[SDL_CODE] = LINUX_CODE;                                                \
+  SCANCODE_SDL_TO_LINUX(FILL_TABLE);
+#undef FILL_TABLE
+}
+
 int GetLinuxScancode(SDL_Scancode s)
 {
   static uint8_t sdl_linux_scancode_table[SDL_NUM_SCANCODES];
   static bool table_initialised;
 
   if (!table_initialised) {
-
-#define FILL_TABLE(SDL_CODE, LINUX_CODE)                                       \
-  sdl_linux_scancode_table[SDL_CODE] = LINUX_CODE;
-    SCANCODE_SDL_TO_LINUX(FILL_TABLE);
-#undef FILL_TABLE
-
+    FillTable(sdl_linux_scancode_table);
     table_initialised = true;
   }
 

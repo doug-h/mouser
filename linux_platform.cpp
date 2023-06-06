@@ -97,11 +97,9 @@ void SetMouse(const MouseData &md)
   static MouseData previous_state;
 
   // You can do better than this...
-  int dx, dy;
   bool L_state, L_changed, M_state, M_changed, R_state, R_changed;
 
-  dx = md.x - previous_state.x;
-  dy = md.y - previous_state.y;
+
   L_state = IsButtonPressed(md, SDL_BUTTON_LEFT);
   M_state = IsButtonPressed(md, SDL_BUTTON_MIDDLE);
   R_state = IsButtonPressed(md, SDL_BUTTON_RIGHT);
@@ -111,7 +109,7 @@ void SetMouse(const MouseData &md)
   R_changed = IsButtonPressed(previous_state, SDL_BUTTON_RIGHT);
 
 
-  vid.MoveCursor(dx, dy);
+  vid.MoveCursor(md.dx, md.dy);
   vid.SetMouseButtons(L_state, L_changed, M_state, M_changed, R_state,
                       R_changed);
   vid.FinishInput();

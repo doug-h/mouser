@@ -30,10 +30,12 @@ private:
 
   void Quit() { running = false; };
 
+public:
   const int rate = 50; // Hz
   const int delay = 1000 / rate;
   const char *const port = "34197";
 
+private:
   bool running;
   bool capturing;
 
@@ -46,13 +48,13 @@ private:
   MousePacket mouse;
   KeyPacket keys;
 
-  // Platform specific
-  std::unique_ptr<Socket> socket;
-
   std::vector<sockaddr_storage> clients;
 
   SDL_Window *window;
   const Uint8 *keyboard_state;
   SDL_Surface *surface;
   SDL_Surface *esc;
+
+  // Platform specific
+  std::unique_ptr<Socket> socket;
 };

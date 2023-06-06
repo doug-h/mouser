@@ -105,7 +105,7 @@ void Server::ProcessEvents()
         }
       } else if (e.type == SDL_MOUSEMOTION) { // 0x400
         /* Mouse is constrained to small (200x100) window,
-         * so we have to do screen clamping */
+         * so we have to handle screen clamping ourselves */
         mouse.data.x =
             (uint16_t)std::clamp(mouse.data.x + e.motion.xrel, 0, 1920);
         mouse.data.y =

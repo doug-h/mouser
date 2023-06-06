@@ -13,11 +13,9 @@
 namespace Platform {
 void SetMouse(const MouseData &md)
 {
-  SetCursorPos(md.x, md.y);
-
   // Could combine some inputs...
   INPUT mouse_inputs;
-  memset(mouse_inputs, 0, sizeof(INPUT));
+  memset(&mouse_inputs, 0, sizeof(INPUT));
   mouse_inputs.type = INPUT_MOUSE;
 
   // We only send button inputs if the current state is wrong
@@ -38,17 +36,17 @@ void SetMouse(const MouseData &md)
   }
   if (md.dx != 0 or md.dy != 0) {
     mouse_inputs.mi.dwFlags |= MOUSEEVENTF_MOVE;
-    mouse_inputs.mi.dx = dx;
-    mouse_inputs.mi.dy = dy;
+    mouse_inputs.mi.dx = md.dx;
+    mouse_inputs.mi.dy = md.dy;
   }
 
   if (md.scroll_amount != 0) {
     mouse_inputs.mi.dwFlags |= MOUSEEVENTF_WHEEL;
-    mouse_inputs.mi.mouseData = scroll_amount;
+    mouse_inputs.mi.mouseData = md.scroll_amount;
     // WHEEL_DELTA
   }
 
-  if (mouse_input.mi.dwFlags != 0) SendInput(1, mouse_input, sizeof(INPUT));
+  if (mouse_inputs.mi.dwFlags != 0) SendInput(1, &mouse_inputs, sizeof(INPUT));
 }
 
 void SetKeys(SDL_Scancode *keys_to_press, SDL_Scancode *keys_to_release,

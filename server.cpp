@@ -13,19 +13,19 @@ Server::Server()
                                                  "../assets/esc.bmp")}
 {
   if (window == nullptr) {
-    printf("Unable to create window: %s", SDL_GetError());
+    printf("Unable to create window: %s\n", SDL_GetError());
     assert(0);
   }
   if (SDL_Init(SDL_INIT_EVENTS) != 0) {
-    printf("Unable to initialize SDL: %s", SDL_GetError());
+    printf("Unable to initialize SDL: %s\n", SDL_GetError());
     assert(0);
   }
   if (surface == nullptr) {
-    printf("Unable to get surface: %s", SDL_GetError());
+    printf("Unable to get surface: %s\n", SDL_GetError());
     assert(0);
   }
   if (esc == nullptr) {
-    printf("Unable to load esc.bmp: %s", SDL_GetError());
+    printf("Unable to load esc.bmp: %s\n", SDL_GetError());
     assert(0);
   }
 }

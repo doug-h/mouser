@@ -84,6 +84,8 @@ void SetKeys(SDL_Scancode *keys_to_press, SDL_Scancode *keys_to_release,
     keys_to_release += n;
   }
 
+  // This doesnt work currently
+#if 0
   // Can't see how to get key repeating with SendInput, so we just unpress/press
   // NOTE - this will completely ignore OS key repeat settings
   while (num_to_release > 0) {
@@ -93,14 +95,15 @@ void SetKeys(SDL_Scancode *keys_to_press, SDL_Scancode *keys_to_release,
       key_input[i].ki.wVk = GetWindowsVKey(keys_to_repeat[i]);
       key_input[i].ki.dwFlags = KEYEVENTF_KEYUP;
 
-      key_input[i + 8].type = INPUT_KEYBOARD;
-      key_input[i + 8].ki.wVk = GetWindowsVKey(keys_to_repeat[i]);
-      key_input[i + 8].ki.dwFlags = 0;
+      key_input[i + n].type = INPUT_KEYBOARD;
+      key_input[i + n].ki.wVk = GetWindowsVKey(keys_to_repeat[i]);
+      key_input[i + n].ki.dwFlags = 0;
     }
-    SendInput(n, key_input, sizeof(INPUT));
+    SendInput(2*n, key_input, sizeof(INPUT));
 
     num_to_repeat -= n;
     keys_to_repeat += n;
   }
+#endif
 }
 } // namespace Platform

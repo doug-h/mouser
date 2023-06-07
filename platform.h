@@ -50,7 +50,8 @@ protected:
 // ========== Define these for each platform ==============
 namespace Platform {
 void SetKeys(SDL_Scancode *keys_to_press, SDL_Scancode *keys_to_release,
-             int num_to_press, int num_to_release);
+             SDL_Scancode *keys_to_repeat, int num_to_press, int num_to_release,
+             int num_to_repeat);
 void SetMouse(const MouseData &);
 // Returns base pointer of derived, platform-specific, socket.
 std::unique_ptr<Socket> CreateSocket(bool blocking, bool ipv6);

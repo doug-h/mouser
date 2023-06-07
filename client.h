@@ -25,7 +25,8 @@ public:
   static constexpr int rate = 500; // Hz
   static constexpr int delay = 1000 / rate;
   static constexpr const char *const port = "34197";
-  // Is that really how you write that??
+  // ^^ Is that really how you write that?? ^^
+  static constexpr int max_simul_keypresses = 16;
 
 private:
   // Storing as packets is easier for sending/receiving

@@ -43,6 +43,7 @@ struct VirtualInputDevice {
     ioctl(m_handle, UI_SET_EVBIT, EV_REL);
     ioctl(m_handle, UI_SET_RELBIT, REL_X);
     ioctl(m_handle, UI_SET_RELBIT, REL_Y);
+    ioctl(m_handle, UI_SET_RELBIT, REL_WHEEL);
 
     ioctl(m_handle, UI_SET_EVBIT, EV_SYN);
 
@@ -66,9 +67,11 @@ struct VirtualInputDevice {
     emit(m_handle, EV_REL, REL_Y, dy);
   }
 
+  void SetScrollwheel(int s) { emit(m_handle, EV_REL, REL_WHEEL, s); }
+
   void SetKey(int KEY_ID, int state)
   {
-    emit(m_handle, EV_KEY, KEY_ID, 0);
+    emit(m_handle, EV_KEY, KEY_ID, state);
     printf("Setting %d to %d\n", KEY_ID, state);
   }
 
@@ -98,8 +101,6 @@ void SetMouse(const MouseData &md)
 
   // You can do better than this...
   bool L_state, L_changed, M_state, M_changed, R_state, R_changed;
-
-
   L_state = IsButtonPressed(md, SDL_BUTTON_LEFT);
   M_state = IsButtonPressed(md, SDL_BUTTON_MIDDLE);
   R_state = IsButtonPressed(md, SDL_BUTTON_RIGHT);
@@ -107,18 +108,20 @@ void SetMouse(const MouseData &md)
   L_changed = IsButtonPressed(previous_state, SDL_BUTTON_LEFT);
   M_changed = IsButtonPressed(previous_state, SDL_BUTTON_MIDDLE);
   R_changed = IsButtonPressed(previous_state, SDL_BUTTON_RIGHT);
-
-
-  vid.MoveCursor(md.dx, md.dy);
   vid.SetMouseButtons(L_state, L_changed, M_state, M_changed, R_state,
                       R_changed);
+
+  vid.MoveCursor(md.dx, md.dy);
+  vid.SetScrollwheel(md.scroll_amount);
+
   vid.FinishInput();
 
   previous_state = md;
 }
 
 void SetKeys(SDL_Scancode *keys_to_press, SDL_Scancode *keys_to_release,
-             int num_to_press, int num_to_release)
+             SDL_Scancode *keys_to_repeat, int num_to_press, int num_to_release,
+             int num_to_repeat)
 {
   VirtualInputDevice &vid = GetVirtualInputDevice();
   for (int i = 0; i < num_to_press; ++i) {
@@ -132,6 +135,12 @@ void SetKeys(SDL_Scancode *keys_to_press, SDL_Scancode *keys_to_release,
     int scancode = GetLinuxScancode(s);
 
     vid.SetKey(scancode, 0);
+  }
+  for (int i = 0; i < num_to_repeat; ++i) {
+    SDL_Scancode s = keys_to_repeat[i];
+    int scancode = GetLinuxScancode(s);
+
+    vid.SetKey(scancode, 2);
   }
 
   vid.FinishInput();

@@ -11,7 +11,8 @@ Server::Server()
       surface{SDL_GetWindowSurface(window)}, esc{SDL_LoadBMP(
                                                  "../assets/esc.bmp")},
 
-      socket(Platform::CreateSocket(false, false)) {
+      socket(Platform::CreateSocket(false, false))
+{
   if (window == nullptr) {
     printf("Unable to create window: %s\n", SDL_GetError());
     assert(0);
@@ -30,10 +31,9 @@ Server::Server()
   }
 }
 
-void Server::Start() {
-  if (!socket->Bind(port)) {
-    assert(0);
-  }
+void Server::Start()
+{
+  if (!socket->Bind(port)) { assert(0); }
 
   while (running) {
     ProcessEvents();
@@ -62,21 +62,24 @@ void Server::Start() {
   }
 };
 
-void Server::Send(const char *buffer, int bufferlen) {
+void Server::Send(const char *buffer, int bufferlen)
+{
   // TODO - handle errors
   for (const auto &a : clients) {
     socket->SendTo(a, buffer, bufferlen);
   }
 }
 
-void Server::PackKeyboardState() {
+void Server::PackKeyboardState()
+{
   for (SDL_Scancode s = MIN_SCANCODE; s < MAX_SCANCODE;
        s = (SDL_Scancode)(s + 1)) {
     SetScancode(keys.data, s, keyboard_state[s]);
   }
 }
 
-void Server::ProcessEvents() {
+void Server::ProcessEvents()
+{
   SDL_Event e;
   while (SDL_PollEvent(&e)) {
     // ---------- Events that always happen ----------
@@ -125,7 +128,8 @@ void Server::ProcessEvents() {
   }
 }
 
-void Server::CheckForMessages() {
+void Server::CheckForMessages()
+{
   sockaddr_storage client;
 
   char message[8];
@@ -146,7 +150,8 @@ void Server::CheckForMessages() {
   }
 }
 
-void Server::StartCapturing() {
+void Server::StartCapturing()
+{
   assert(not capturing);
   capturing = true;
   std::cout << "START\n";
@@ -156,7 +161,8 @@ void Server::StartCapturing() {
   SDL_UpdateWindowSurface(window);
 }
 
-void Server::StopCapturing() {
+void Server::StopCapturing()
+{
   assert(capturing);
   capturing = false;
   std::cout << "STOP\n";
@@ -168,7 +174,8 @@ void Server::StopCapturing() {
   SDL_UpdateWindowSurface(window);
 }
 
-int main(int argv, char **args) {
+int main(int argv, char **args)
+{
   Server server;
   server.Start();
   return 0;

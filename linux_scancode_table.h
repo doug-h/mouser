@@ -195,8 +195,8 @@
 
 void FillTable(uint8_t *table)
 {
-#define FILL_TABLE(SDL_CODE, LINUX_CODE)                                       \
-  table[SDL_CODE] = LINUX_CODE;                                                \
+#define FILL_TABLE(SDL_CODE, LINUX_CODE) table[SDL_CODE] = LINUX_CODE;
+
   SCANCODE_SDL_TO_LINUX(FILL_TABLE);
 #undef FILL_TABLE
 }

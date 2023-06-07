@@ -44,12 +44,13 @@ void Client::UpdateMouse(MousePacket *packet)
 
 void Client::UpdateKeys(KeyPacket *packet)
 {
-  // TODO - rework this, dont need 4KB of ints for a couple key inputs
+  // TODO - rework this (KB's of ints just from my poorly thought out design)
   static SDL_Scancode keys_to_press[SDL_NUM_SCANCODES];
   static SDL_Scancode keys_to_release[SDL_NUM_SCANCODES];
-
+  static SDL_Scancode keys_to_repeat[SDL_NUM_SCANCODES];
   int num_to_press = 0;
   int num_to_release = 0;
+  int num_to_repeat = 0;
 
   uint8_t *received = packet->data.packed_scancodes;
   uint8_t *stored = keys.data.packed_scancodes;
@@ -59,14 +60,19 @@ void Client::UpdateKeys(KeyPacket *packet)
     uint8_t diff = received[byte] ^ stored[byte];
     int bit = 0;
     while (diff) {
+      SDL_Scancode s = (SDL_Scancode)(MIN_SCANCODE + 8 * byte + bit);
+
       if (diff & 1) {
-        SDL_Scancode s = (SDL_Scancode)(MIN_SCANCODE + 8 * byte + bit);
+        // Key state changed
         if (received[byte] & (1 << bit)) {
           keys_to_press[num_to_press++] = s;
-          printf("Keyboard press %i\n", s);
         } else {
           keys_to_release[num_to_release++] = s;
-          printf("Keyboard release %i\n", s);
+        }
+      } else {
+        // Key state unchanged
+        if (received[byte] & (1 << bit)) {
+          keys_to_repeat[num_to_repeat++] = s;
         }
       }
       diff >>= 1;
@@ -74,8 +80,8 @@ void Client::UpdateKeys(KeyPacket *packet)
     }
   }
 
-  Platform::SetKeys(keys_to_press, keys_to_release, num_to_press,
-                    num_to_release);
+  Platform::SetKeys(keys_to_press, keys_to_release, keys_to_repeat,
+                    num_to_press, num_to_release, num_to_repeat);
 
   keys.data = packet->data;
 }
